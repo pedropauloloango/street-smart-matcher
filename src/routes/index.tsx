@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
-import { Download, Play, Save, Sparkles, AlertTriangle, CheckCircle2, Database } from "lucide-react";
-import { readSpreadsheet, sisgranFromRows, matchRows, exportToXlsx, type MatchedRow, type SisgranEntry } from "@/lib/processing";
+import { Download, Play, Save, Sparkles, AlertTriangle, CheckCircle2, Database, FileDown } from "lucide-react";
+import { readSpreadsheet, sisgranFromRows, matchRows, exportToXlsx, downloadReceitaTemplate, downloadSisgranTemplate, type MatchedRow, type SisgranEntry } from "@/lib/processing";
 import { normalizeBairro } from "@/lib/normalize";
 import { supabase } from "@/integrations/supabase/client";
 
