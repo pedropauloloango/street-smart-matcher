@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
-import { Download, Play, Save, Sparkles, AlertTriangle, CheckCircle2, Database } from "lucide-react";
-import { readSpreadsheet, sisgranFromRows, matchRows, exportToXlsx, type MatchedRow, type SisgranEntry } from "@/lib/processing";
+import { Download, Play, Save, Sparkles, AlertTriangle, CheckCircle2, Database, FileDown } from "lucide-react";
+import { readSpreadsheet, sisgranFromRows, matchRows, exportToXlsx, downloadReceitaTemplate, downloadSisgranTemplate, type MatchedRow, type SisgranEntry } from "@/lib/processing";
 import { normalizeBairro } from "@/lib/normalize";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -168,6 +168,26 @@ function ProcessarPage() {
           </p>
         </div>
         <div className="absolute -right-12 -top-12 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+      </section>
+
+      {/* Templates */}
+      <section className="rounded-xl border border-border/60 bg-surface p-4 shadow-soft">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold">Modelos de planilha</p>
+            <p className="text-xs text-muted-foreground">Baixe o formato esperado para garantir as colunas corretas antes do envio.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" className="gap-2" onClick={downloadReceitaTemplate}>
+              <FileDown className="h-4 w-4" />
+              Modelo Receita Federal
+            </Button>
+            <Button variant="outline" size="sm" className="gap-2" onClick={downloadSisgranTemplate}>
+              <FileDown className="h-4 w-4" />
+              Modelo SISGRAN
+            </Button>
+          </div>
+        </div>
       </section>
 
       {/* Uploads */}

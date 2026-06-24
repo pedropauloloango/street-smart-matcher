@@ -181,3 +181,48 @@ export function exportToXlsx(rows: MatchedRow[], filename = "resultado.xlsx") {
   XLSX.utils.book_append_sheet(wb, ws, "Resultado");
   XLSX.writeFile(wb, filename);
 }
+
+export function downloadReceitaTemplate() {
+  const sample = [
+    {
+      "Tipo Logradouro": "RUA",
+      Logradouro: "DAS PALMEIRAS",
+      Numero: "123",
+      Bairro: "JD DOS ESTADOS",
+      CEP: "79020-000",
+    },
+    {
+      "Tipo Logradouro": "AV",
+      Logradouro: "AFONSO PENA",
+      Numero: "4500",
+      Bairro: "CENTRO",
+      CEP: "79002-070",
+    },
+    {
+      "Tipo Logradouro": "RUA",
+      Logradouro: "EXEMPLO",
+      Numero: "10",
+      Bairro: "VL PROGRESSO",
+      CEP: "79050-000",
+    },
+  ];
+  const ws = XLSX.utils.json_to_sheet(sample);
+  ws["!cols"] = [{ wch: 16 }, { wch: 28 }, { wch: 10 }, { wch: 28 }, { wch: 12 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Empresas");
+  XLSX.writeFile(wb, "modelo_receita_federal.xlsx");
+}
+
+export function downloadSisgranTemplate() {
+  const sample = [
+    { "Bairro Oficial": "JARDIM DOS ESTADOS", Parcelamento: "JARDIM DOS ESTADOS", "Região Urbana": "CENTRO" },
+    { "Bairro Oficial": "CENTRO", Parcelamento: "CENTRO", "Região Urbana": "CENTRO" },
+    { "Bairro Oficial": "VILA PROGRESSO", Parcelamento: "PROGRESSO", "Região Urbana": "PROSPERIDADE" },
+    { "Bairro Oficial": "PARQUE DOS PODERES", Parcelamento: "PARQUE DOS PODERES", "Região Urbana": "PROSPERIDADE" },
+  ];
+  const ws = XLSX.utils.json_to_sheet(sample);
+  ws["!cols"] = [{ wch: 28 }, { wch: 28 }, { wch: 20 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "SISGRAN");
+  XLSX.writeFile(wb, "modelo_sisgran_campo_grande.xlsx");
+}
