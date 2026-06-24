@@ -14,7 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bairros_dicionario: {
+        Row: {
+          acertos: number
+          bairro_normalizado: string
+          bairro_oficial: string
+          created_at: string
+          id: string
+          origem: string
+          parcelamento: string | null
+          regiao_urbana: string | null
+          updated_at: string
+        }
+        Insert: {
+          acertos?: number
+          bairro_normalizado: string
+          bairro_oficial: string
+          created_at?: string
+          id?: string
+          origem?: string
+          parcelamento?: string | null
+          regiao_urbana?: string | null
+          updated_at?: string
+        }
+        Update: {
+          acertos?: number
+          bairro_normalizado?: string
+          bairro_oficial?: string
+          created_at?: string
+          id?: string
+          origem?: string
+          parcelamento?: string | null
+          regiao_urbana?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      processamentos: {
+        Row: {
+          created_at: string
+          id: string
+          matched: number
+          nome_arquivo: string
+          percentual: number
+          total_registros: number
+          unmatched: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          matched?: number
+          nome_arquivo: string
+          percentual?: number
+          total_registros?: number
+          unmatched?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          matched?: number
+          nome_arquivo?: string
+          percentual?: number
+          total_registros?: number
+          unmatched?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
