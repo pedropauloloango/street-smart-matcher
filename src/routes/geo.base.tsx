@@ -120,8 +120,8 @@ function BaseOficial() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((b) => (
-                <>
+              {filtered.flatMap((b) => {
+                const rows = [
                   <TableRow key={b.id}>
                     {editId === b.id ? (
                       <>
@@ -148,8 +148,10 @@ function BaseOficial() {
                         </TableCell>
                       </>
                     )}
-                  </TableRow>
-                  {openId === b.id && (
+                  </TableRow>,
+                ];
+                if (openId === b.id) {
+                  rows.push(
                     <TableRow key={b.id + "-p"}>
                       <TableCell colSpan={4} className="bg-muted/30">
                         <div className="space-y-2">
@@ -169,9 +171,10 @@ function BaseOficial() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  )}
-                </>
-              ))}
+                  );
+                }
+                return rows;
+              })}
               {filtered.length === 0 && (
                 <TableRow><TableCell colSpan={4} className="text-center text-sm text-muted-foreground">Nenhum bairro cadastrado.</TableCell></TableRow>
               )}
