@@ -50,6 +50,183 @@ export type Database = {
         }
         Relationships: []
       }
+      geo_bairros: {
+        Row: {
+          ativo: boolean
+          bairro_oficial: string
+          data_cadastro: string
+          id: string
+          regiao_urbana: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          bairro_oficial: string
+          data_cadastro?: string
+          id?: string
+          regiao_urbana?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          bairro_oficial?: string
+          data_cadastro?: string
+          id?: string
+          regiao_urbana?: string | null
+        }
+        Relationships: []
+      }
+      geo_importacoes: {
+        Row: {
+          data_importacao: string
+          encontrados: number
+          id: string
+          nao_encontrados: number
+          nome_arquivo: string
+          similares: number
+          status: string
+          total_registros: number
+          usuario: string | null
+        }
+        Insert: {
+          data_importacao?: string
+          encontrados?: number
+          id?: string
+          nao_encontrados?: number
+          nome_arquivo: string
+          similares?: number
+          status?: string
+          total_registros?: number
+          usuario?: string | null
+        }
+        Update: {
+          data_importacao?: string
+          encontrados?: number
+          id?: string
+          nao_encontrados?: number
+          nome_arquivo?: string
+          similares?: number
+          status?: string
+          total_registros?: number
+          usuario?: string | null
+        }
+        Relationships: []
+      }
+      geo_parcelamentos: {
+        Row: {
+          ativo: boolean
+          bairro_id: string
+          data_cadastro: string
+          id: string
+          parcelamento: string
+        }
+        Insert: {
+          ativo?: boolean
+          bairro_id: string
+          data_cadastro?: string
+          id?: string
+          parcelamento: string
+        }
+        Update: {
+          ativo?: boolean
+          bairro_id?: string
+          data_cadastro?: string
+          id?: string
+          parcelamento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geo_parcelamentos_bairro_id_fkey"
+            columns: ["bairro_id"]
+            isOneToOne: false
+            referencedRelation: "geo_bairros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      geo_resultados: {
+        Row: {
+          bairro_oficial: string | null
+          bairro_original: string | null
+          created_at: string
+          id: string
+          importacao_id: string
+          linha_original: number
+          parcelamento: string | null
+          percentual_confianca: number
+          regiao_urbana: string | null
+          status_match: string
+        }
+        Insert: {
+          bairro_oficial?: string | null
+          bairro_original?: string | null
+          created_at?: string
+          id?: string
+          importacao_id: string
+          linha_original: number
+          parcelamento?: string | null
+          percentual_confianca?: number
+          regiao_urbana?: string | null
+          status_match?: string
+        }
+        Update: {
+          bairro_oficial?: string | null
+          bairro_original?: string | null
+          created_at?: string
+          id?: string
+          importacao_id?: string
+          linha_original?: number
+          parcelamento?: string | null
+          percentual_confianca?: number
+          regiao_urbana?: string | null
+          status_match?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geo_resultados_importacao_id_fkey"
+            columns: ["importacao_id"]
+            isOneToOne: false
+            referencedRelation: "geo_importacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      geo_sinonimos: {
+        Row: {
+          bairro_id: string
+          confianca: number
+          data_cadastro: string
+          id: string
+          nome_informado: string
+          nome_normalizado: string
+          tipo_correspondencia: string
+        }
+        Insert: {
+          bairro_id: string
+          confianca?: number
+          data_cadastro?: string
+          id?: string
+          nome_informado: string
+          nome_normalizado: string
+          tipo_correspondencia?: string
+        }
+        Update: {
+          bairro_id?: string
+          confianca?: number
+          data_cadastro?: string
+          id?: string
+          nome_informado?: string
+          nome_normalizado?: string
+          tipo_correspondencia?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geo_sinonimos_bairro_id_fkey"
+            columns: ["bairro_id"]
+            isOneToOne: false
+            referencedRelation: "geo_bairros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processamentos: {
         Row: {
           created_at: string
