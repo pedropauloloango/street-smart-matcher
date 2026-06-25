@@ -10,12 +10,24 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as HistoricoRouteImport } from './routes/historico'
+import { Route as GeoRouteImport } from './routes/geo'
 import { Route as DicionarioRouteImport } from './routes/dicionario'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as GeoIndexRouteImport } from './routes/geo.index'
+import { Route as GeoResultadoRouteImport } from './routes/geo.resultado'
+import { Route as GeoNormalizacaoRouteImport } from './routes/geo.normalizacao'
+import { Route as GeoImportarRouteImport } from './routes/geo.importar'
+import { Route as GeoExportacoesRouteImport } from './routes/geo.exportacoes'
+import { Route as GeoBaseRouteImport } from './routes/geo.base'
 
 const HistoricoRoute = HistoricoRouteImport.update({
   id: '/historico',
   path: '/historico',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GeoRoute = GeoRouteImport.update({
+  id: '/geo',
+  path: '/geo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DicionarioRoute = DicionarioRouteImport.update({
@@ -28,34 +40,115 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GeoIndexRoute = GeoIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => GeoRoute,
+} as any)
+const GeoResultadoRoute = GeoResultadoRouteImport.update({
+  id: '/resultado',
+  path: '/resultado',
+  getParentRoute: () => GeoRoute,
+} as any)
+const GeoNormalizacaoRoute = GeoNormalizacaoRouteImport.update({
+  id: '/normalizacao',
+  path: '/normalizacao',
+  getParentRoute: () => GeoRoute,
+} as any)
+const GeoImportarRoute = GeoImportarRouteImport.update({
+  id: '/importar',
+  path: '/importar',
+  getParentRoute: () => GeoRoute,
+} as any)
+const GeoExportacoesRoute = GeoExportacoesRouteImport.update({
+  id: '/exportacoes',
+  path: '/exportacoes',
+  getParentRoute: () => GeoRoute,
+} as any)
+const GeoBaseRoute = GeoBaseRouteImport.update({
+  id: '/base',
+  path: '/base',
+  getParentRoute: () => GeoRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dicionario': typeof DicionarioRoute
+  '/geo': typeof GeoRouteWithChildren
   '/historico': typeof HistoricoRoute
+  '/geo/base': typeof GeoBaseRoute
+  '/geo/exportacoes': typeof GeoExportacoesRoute
+  '/geo/importar': typeof GeoImportarRoute
+  '/geo/normalizacao': typeof GeoNormalizacaoRoute
+  '/geo/resultado': typeof GeoResultadoRoute
+  '/geo/': typeof GeoIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dicionario': typeof DicionarioRoute
   '/historico': typeof HistoricoRoute
+  '/geo/base': typeof GeoBaseRoute
+  '/geo/exportacoes': typeof GeoExportacoesRoute
+  '/geo/importar': typeof GeoImportarRoute
+  '/geo/normalizacao': typeof GeoNormalizacaoRoute
+  '/geo/resultado': typeof GeoResultadoRoute
+  '/geo': typeof GeoIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dicionario': typeof DicionarioRoute
+  '/geo': typeof GeoRouteWithChildren
   '/historico': typeof HistoricoRoute
+  '/geo/base': typeof GeoBaseRoute
+  '/geo/exportacoes': typeof GeoExportacoesRoute
+  '/geo/importar': typeof GeoImportarRoute
+  '/geo/normalizacao': typeof GeoNormalizacaoRoute
+  '/geo/resultado': typeof GeoResultadoRoute
+  '/geo/': typeof GeoIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dicionario' | '/historico'
+  fullPaths:
+    | '/'
+    | '/dicionario'
+    | '/geo'
+    | '/historico'
+    | '/geo/base'
+    | '/geo/exportacoes'
+    | '/geo/importar'
+    | '/geo/normalizacao'
+    | '/geo/resultado'
+    | '/geo/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dicionario' | '/historico'
-  id: '__root__' | '/' | '/dicionario' | '/historico'
+  to:
+    | '/'
+    | '/dicionario'
+    | '/historico'
+    | '/geo/base'
+    | '/geo/exportacoes'
+    | '/geo/importar'
+    | '/geo/normalizacao'
+    | '/geo/resultado'
+    | '/geo'
+  id:
+    | '__root__'
+    | '/'
+    | '/dicionario'
+    | '/geo'
+    | '/historico'
+    | '/geo/base'
+    | '/geo/exportacoes'
+    | '/geo/importar'
+    | '/geo/normalizacao'
+    | '/geo/resultado'
+    | '/geo/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DicionarioRoute: typeof DicionarioRoute
+  GeoRoute: typeof GeoRouteWithChildren
   HistoricoRoute: typeof HistoricoRoute
 }
 
@@ -66,6 +159,13 @@ declare module '@tanstack/react-router' {
       path: '/historico'
       fullPath: '/historico'
       preLoaderRoute: typeof HistoricoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/geo': {
+      id: '/geo'
+      path: '/geo'
+      fullPath: '/geo'
+      preLoaderRoute: typeof GeoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dicionario': {
@@ -82,12 +182,75 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/geo/': {
+      id: '/geo/'
+      path: '/'
+      fullPath: '/geo/'
+      preLoaderRoute: typeof GeoIndexRouteImport
+      parentRoute: typeof GeoRoute
+    }
+    '/geo/resultado': {
+      id: '/geo/resultado'
+      path: '/resultado'
+      fullPath: '/geo/resultado'
+      preLoaderRoute: typeof GeoResultadoRouteImport
+      parentRoute: typeof GeoRoute
+    }
+    '/geo/normalizacao': {
+      id: '/geo/normalizacao'
+      path: '/normalizacao'
+      fullPath: '/geo/normalizacao'
+      preLoaderRoute: typeof GeoNormalizacaoRouteImport
+      parentRoute: typeof GeoRoute
+    }
+    '/geo/importar': {
+      id: '/geo/importar'
+      path: '/importar'
+      fullPath: '/geo/importar'
+      preLoaderRoute: typeof GeoImportarRouteImport
+      parentRoute: typeof GeoRoute
+    }
+    '/geo/exportacoes': {
+      id: '/geo/exportacoes'
+      path: '/exportacoes'
+      fullPath: '/geo/exportacoes'
+      preLoaderRoute: typeof GeoExportacoesRouteImport
+      parentRoute: typeof GeoRoute
+    }
+    '/geo/base': {
+      id: '/geo/base'
+      path: '/base'
+      fullPath: '/geo/base'
+      preLoaderRoute: typeof GeoBaseRouteImport
+      parentRoute: typeof GeoRoute
+    }
   }
 }
+
+interface GeoRouteChildren {
+  GeoBaseRoute: typeof GeoBaseRoute
+  GeoExportacoesRoute: typeof GeoExportacoesRoute
+  GeoImportarRoute: typeof GeoImportarRoute
+  GeoNormalizacaoRoute: typeof GeoNormalizacaoRoute
+  GeoResultadoRoute: typeof GeoResultadoRoute
+  GeoIndexRoute: typeof GeoIndexRoute
+}
+
+const GeoRouteChildren: GeoRouteChildren = {
+  GeoBaseRoute: GeoBaseRoute,
+  GeoExportacoesRoute: GeoExportacoesRoute,
+  GeoImportarRoute: GeoImportarRoute,
+  GeoNormalizacaoRoute: GeoNormalizacaoRoute,
+  GeoResultadoRoute: GeoResultadoRoute,
+  GeoIndexRoute: GeoIndexRoute,
+}
+
+const GeoRouteWithChildren = GeoRoute._addFileChildren(GeoRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DicionarioRoute: DicionarioRoute,
+  GeoRoute: GeoRouteWithChildren,
   HistoricoRoute: HistoricoRoute,
 }
 export const routeTree = rootRouteImport
