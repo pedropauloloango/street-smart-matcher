@@ -435,13 +435,14 @@ export function matchOne(original: string, ds: GeoDataset, line: number): Result
 
 
 
-  if (best && best.score >= 85) {
+  const finalBest: Best | null = best;
+  if (finalBest && finalBest.score >= 85) {
 
-    return fill(base, best.b, ds, "similaridade", best.score, best.parc);
+    return fill(base, finalBest.b, ds, "similaridade", finalBest.score, finalBest.parc);
 
   }
 
-  return { ...base, percentual_confianca: best?.score ?? 0 };
+  return { ...base, percentual_confianca: finalBest?.score ?? 0 };
 
 }
 
