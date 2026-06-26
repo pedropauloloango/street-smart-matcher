@@ -9,7 +9,7 @@ import { fetchResultados, statusLabel } from "@/lib/geo/api";
 import { exportXLSX, exportCSV } from "@/lib/geo/io";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/geo/exportacoes")({
+export const Route = createFileRoute("/_app/geo/exportacoes")({
   component: ExportacoesPage,
 });
 

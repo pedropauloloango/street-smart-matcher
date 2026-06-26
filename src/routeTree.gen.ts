@@ -9,42 +9,28 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as HistoricoRouteImport } from './routes/historico'
-import { Route as GeoRouteImport } from './routes/geo'
-import { Route as DicionarioRouteImport } from './routes/dicionario'
-import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as GeoIndexRouteImport } from './routes/geo.index'
-import { Route as GeoResultadoRouteImport } from './routes/geo.resultado'
-import { Route as GeoNormalizacaoRouteImport } from './routes/geo.normalizacao'
-import { Route as GeoImportarRouteImport } from './routes/geo.importar'
-import { Route as GeoExportacoesRouteImport } from './routes/geo.exportacoes'
-import { Route as GeoBaseRouteImport } from './routes/geo.base'
+import { Route as AppProcessarRouteImport } from './routes/_app/processar'
+import { Route as AppHistoricoRouteImport } from './routes/_app/historico'
+import { Route as AppGeoRouteImport } from './routes/_app/geo'
+import { Route as AppDicionarioRouteImport } from './routes/_app/dicionario'
+import { Route as AppConfiguracoesRouteImport } from './routes/_app/configuracoes'
+import { Route as AppGeoIndexRouteImport } from './routes/_app/geo/index'
+import { Route as AppGeoResultadoRouteImport } from './routes/_app/geo/resultado'
+import { Route as AppGeoNormalizacaoRouteImport } from './routes/_app/geo/normalizacao'
+import { Route as AppGeoImportarRouteImport } from './routes/_app/geo/importar'
+import { Route as AppGeoExportacoesRouteImport } from './routes/_app/geo/exportacoes'
+import { Route as AppGeoBaseRouteImport } from './routes/_app/geo/base'
 
-const HistoricoRoute = HistoricoRouteImport.update({
-  id: '/historico',
-  path: '/historico',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GeoRoute = GeoRouteImport.update({
-  id: '/geo',
-  path: '/geo',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DicionarioRoute = DicionarioRouteImport.update({
-  id: '/dicionario',
-  path: '/dicionario',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
-  id: '/configuracoes',
-  path: '/configuracoes',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -52,78 +38,107 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const GeoIndexRoute = GeoIndexRouteImport.update({
+const AppProcessarRoute = AppProcessarRouteImport.update({
+  id: '/processar',
+  path: '/processar',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHistoricoRoute = AppHistoricoRouteImport.update({
+  id: '/historico',
+  path: '/historico',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGeoRoute = AppGeoRouteImport.update({
+  id: '/geo',
+  path: '/geo',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDicionarioRoute = AppDicionarioRouteImport.update({
+  id: '/dicionario',
+  path: '/dicionario',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppConfiguracoesRoute = AppConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGeoIndexRoute = AppGeoIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => GeoRoute,
+  getParentRoute: () => AppGeoRoute,
 } as any)
-const GeoResultadoRoute = GeoResultadoRouteImport.update({
+const AppGeoResultadoRoute = AppGeoResultadoRouteImport.update({
   id: '/resultado',
   path: '/resultado',
-  getParentRoute: () => GeoRoute,
+  getParentRoute: () => AppGeoRoute,
 } as any)
-const GeoNormalizacaoRoute = GeoNormalizacaoRouteImport.update({
+const AppGeoNormalizacaoRoute = AppGeoNormalizacaoRouteImport.update({
   id: '/normalizacao',
   path: '/normalizacao',
-  getParentRoute: () => GeoRoute,
+  getParentRoute: () => AppGeoRoute,
 } as any)
-const GeoImportarRoute = GeoImportarRouteImport.update({
+const AppGeoImportarRoute = AppGeoImportarRouteImport.update({
   id: '/importar',
   path: '/importar',
-  getParentRoute: () => GeoRoute,
+  getParentRoute: () => AppGeoRoute,
 } as any)
-const GeoExportacoesRoute = GeoExportacoesRouteImport.update({
+const AppGeoExportacoesRoute = AppGeoExportacoesRouteImport.update({
   id: '/exportacoes',
   path: '/exportacoes',
-  getParentRoute: () => GeoRoute,
+  getParentRoute: () => AppGeoRoute,
 } as any)
-const GeoBaseRoute = GeoBaseRouteImport.update({
+const AppGeoBaseRoute = AppGeoBaseRouteImport.update({
   id: '/base',
   path: '/base',
-  getParentRoute: () => GeoRoute,
+  getParentRoute: () => AppGeoRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/configuracoes': typeof ConfiguracoesRoute
-  '/dicionario': typeof DicionarioRoute
-  '/geo': typeof GeoRouteWithChildren
-  '/historico': typeof HistoricoRoute
-  '/geo/base': typeof GeoBaseRoute
-  '/geo/exportacoes': typeof GeoExportacoesRoute
-  '/geo/importar': typeof GeoImportarRoute
-  '/geo/normalizacao': typeof GeoNormalizacaoRoute
-  '/geo/resultado': typeof GeoResultadoRoute
-  '/geo/': typeof GeoIndexRoute
+  '/configuracoes': typeof AppConfiguracoesRoute
+  '/dicionario': typeof AppDicionarioRoute
+  '/geo': typeof AppGeoRouteWithChildren
+  '/historico': typeof AppHistoricoRoute
+  '/processar': typeof AppProcessarRoute
+  '/geo/base': typeof AppGeoBaseRoute
+  '/geo/exportacoes': typeof AppGeoExportacoesRoute
+  '/geo/importar': typeof AppGeoImportarRoute
+  '/geo/normalizacao': typeof AppGeoNormalizacaoRoute
+  '/geo/resultado': typeof AppGeoResultadoRoute
+  '/geo/': typeof AppGeoIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/configuracoes': typeof ConfiguracoesRoute
-  '/dicionario': typeof DicionarioRoute
-  '/historico': typeof HistoricoRoute
-  '/geo/base': typeof GeoBaseRoute
-  '/geo/exportacoes': typeof GeoExportacoesRoute
-  '/geo/importar': typeof GeoImportarRoute
-  '/geo/normalizacao': typeof GeoNormalizacaoRoute
-  '/geo/resultado': typeof GeoResultadoRoute
-  '/geo': typeof GeoIndexRoute
+  '/configuracoes': typeof AppConfiguracoesRoute
+  '/dicionario': typeof AppDicionarioRoute
+  '/historico': typeof AppHistoricoRoute
+  '/processar': typeof AppProcessarRoute
+  '/geo/base': typeof AppGeoBaseRoute
+  '/geo/exportacoes': typeof AppGeoExportacoesRoute
+  '/geo/importar': typeof AppGeoImportarRoute
+  '/geo/normalizacao': typeof AppGeoNormalizacaoRoute
+  '/geo/resultado': typeof AppGeoResultadoRoute
+  '/geo': typeof AppGeoIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
-  '/configuracoes': typeof ConfiguracoesRoute
-  '/dicionario': typeof DicionarioRoute
-  '/geo': typeof GeoRouteWithChildren
-  '/historico': typeof HistoricoRoute
-  '/geo/base': typeof GeoBaseRoute
-  '/geo/exportacoes': typeof GeoExportacoesRoute
-  '/geo/importar': typeof GeoImportarRoute
-  '/geo/normalizacao': typeof GeoNormalizacaoRoute
-  '/geo/resultado': typeof GeoResultadoRoute
-  '/geo/': typeof GeoIndexRoute
+  '/_app/configuracoes': typeof AppConfiguracoesRoute
+  '/_app/dicionario': typeof AppDicionarioRoute
+  '/_app/geo': typeof AppGeoRouteWithChildren
+  '/_app/historico': typeof AppHistoricoRoute
+  '/_app/processar': typeof AppProcessarRoute
+  '/_app/geo/base': typeof AppGeoBaseRoute
+  '/_app/geo/exportacoes': typeof AppGeoExportacoesRoute
+  '/_app/geo/importar': typeof AppGeoImportarRoute
+  '/_app/geo/normalizacao': typeof AppGeoNormalizacaoRoute
+  '/_app/geo/resultado': typeof AppGeoResultadoRoute
+  '/_app/geo/': typeof AppGeoIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -134,6 +149,7 @@ export interface FileRouteTypes {
     | '/dicionario'
     | '/geo'
     | '/historico'
+    | '/processar'
     | '/geo/base'
     | '/geo/exportacoes'
     | '/geo/importar'
@@ -147,6 +163,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/dicionario'
     | '/historico'
+    | '/processar'
     | '/geo/base'
     | '/geo/exportacoes'
     | '/geo/importar'
@@ -156,63 +173,41 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/_app'
     | '/auth'
-    | '/configuracoes'
-    | '/dicionario'
-    | '/geo'
-    | '/historico'
-    | '/geo/base'
-    | '/geo/exportacoes'
-    | '/geo/importar'
-    | '/geo/normalizacao'
-    | '/geo/resultado'
-    | '/geo/'
+    | '/_app/configuracoes'
+    | '/_app/dicionario'
+    | '/_app/geo'
+    | '/_app/historico'
+    | '/_app/processar'
+    | '/_app/geo/base'
+    | '/_app/geo/exportacoes'
+    | '/_app/geo/importar'
+    | '/_app/geo/normalizacao'
+    | '/_app/geo/resultado'
+    | '/_app/geo/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
-  ConfiguracoesRoute: typeof ConfiguracoesRoute
-  DicionarioRoute: typeof DicionarioRoute
-  GeoRoute: typeof GeoRouteWithChildren
-  HistoricoRoute: typeof HistoricoRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/historico': {
-      id: '/historico'
-      path: '/historico'
-      fullPath: '/historico'
-      preLoaderRoute: typeof HistoricoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/geo': {
-      id: '/geo'
-      path: '/geo'
-      fullPath: '/geo'
-      preLoaderRoute: typeof GeoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dicionario': {
-      id: '/dicionario'
-      path: '/dicionario'
-      fullPath: '/dicionario'
-      preLoaderRoute: typeof DicionarioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/configuracoes': {
-      id: '/configuracoes'
-      path: '/configuracoes'
-      fullPath: '/configuracoes'
-      preLoaderRoute: typeof ConfiguracoesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/auth': {
       id: '/auth'
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -222,79 +217,140 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/geo/': {
-      id: '/geo/'
+    '/_app/processar': {
+      id: '/_app/processar'
+      path: '/processar'
+      fullPath: '/processar'
+      preLoaderRoute: typeof AppProcessarRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/historico': {
+      id: '/_app/historico'
+      path: '/historico'
+      fullPath: '/historico'
+      preLoaderRoute: typeof AppHistoricoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/geo': {
+      id: '/_app/geo'
+      path: '/geo'
+      fullPath: '/geo'
+      preLoaderRoute: typeof AppGeoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dicionario': {
+      id: '/_app/dicionario'
+      path: '/dicionario'
+      fullPath: '/dicionario'
+      preLoaderRoute: typeof AppDicionarioRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/configuracoes': {
+      id: '/_app/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof AppConfiguracoesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/geo/': {
+      id: '/_app/geo/'
       path: '/'
       fullPath: '/geo/'
-      preLoaderRoute: typeof GeoIndexRouteImport
-      parentRoute: typeof GeoRoute
+      preLoaderRoute: typeof AppGeoIndexRouteImport
+      parentRoute: typeof AppGeoRoute
     }
-    '/geo/resultado': {
-      id: '/geo/resultado'
+    '/_app/geo/resultado': {
+      id: '/_app/geo/resultado'
       path: '/resultado'
       fullPath: '/geo/resultado'
-      preLoaderRoute: typeof GeoResultadoRouteImport
-      parentRoute: typeof GeoRoute
+      preLoaderRoute: typeof AppGeoResultadoRouteImport
+      parentRoute: typeof AppGeoRoute
     }
-    '/geo/normalizacao': {
-      id: '/geo/normalizacao'
+    '/_app/geo/normalizacao': {
+      id: '/_app/geo/normalizacao'
       path: '/normalizacao'
       fullPath: '/geo/normalizacao'
-      preLoaderRoute: typeof GeoNormalizacaoRouteImport
-      parentRoute: typeof GeoRoute
+      preLoaderRoute: typeof AppGeoNormalizacaoRouteImport
+      parentRoute: typeof AppGeoRoute
     }
-    '/geo/importar': {
-      id: '/geo/importar'
+    '/_app/geo/importar': {
+      id: '/_app/geo/importar'
       path: '/importar'
       fullPath: '/geo/importar'
-      preLoaderRoute: typeof GeoImportarRouteImport
-      parentRoute: typeof GeoRoute
+      preLoaderRoute: typeof AppGeoImportarRouteImport
+      parentRoute: typeof AppGeoRoute
     }
-    '/geo/exportacoes': {
-      id: '/geo/exportacoes'
+    '/_app/geo/exportacoes': {
+      id: '/_app/geo/exportacoes'
       path: '/exportacoes'
       fullPath: '/geo/exportacoes'
-      preLoaderRoute: typeof GeoExportacoesRouteImport
-      parentRoute: typeof GeoRoute
+      preLoaderRoute: typeof AppGeoExportacoesRouteImport
+      parentRoute: typeof AppGeoRoute
     }
-    '/geo/base': {
-      id: '/geo/base'
+    '/_app/geo/base': {
+      id: '/_app/geo/base'
       path: '/base'
       fullPath: '/geo/base'
-      preLoaderRoute: typeof GeoBaseRouteImport
-      parentRoute: typeof GeoRoute
+      preLoaderRoute: typeof AppGeoBaseRouteImport
+      parentRoute: typeof AppGeoRoute
     }
   }
 }
 
-interface GeoRouteChildren {
-  GeoBaseRoute: typeof GeoBaseRoute
-  GeoExportacoesRoute: typeof GeoExportacoesRoute
-  GeoImportarRoute: typeof GeoImportarRoute
-  GeoNormalizacaoRoute: typeof GeoNormalizacaoRoute
-  GeoResultadoRoute: typeof GeoResultadoRoute
-  GeoIndexRoute: typeof GeoIndexRoute
+interface AppGeoRouteChildren {
+  AppGeoBaseRoute: typeof AppGeoBaseRoute
+  AppGeoExportacoesRoute: typeof AppGeoExportacoesRoute
+  AppGeoImportarRoute: typeof AppGeoImportarRoute
+  AppGeoNormalizacaoRoute: typeof AppGeoNormalizacaoRoute
+  AppGeoResultadoRoute: typeof AppGeoResultadoRoute
+  AppGeoIndexRoute: typeof AppGeoIndexRoute
 }
 
-const GeoRouteChildren: GeoRouteChildren = {
-  GeoBaseRoute: GeoBaseRoute,
-  GeoExportacoesRoute: GeoExportacoesRoute,
-  GeoImportarRoute: GeoImportarRoute,
-  GeoNormalizacaoRoute: GeoNormalizacaoRoute,
-  GeoResultadoRoute: GeoResultadoRoute,
-  GeoIndexRoute: GeoIndexRoute,
+const AppGeoRouteChildren: AppGeoRouteChildren = {
+  AppGeoBaseRoute: AppGeoBaseRoute,
+  AppGeoExportacoesRoute: AppGeoExportacoesRoute,
+  AppGeoImportarRoute: AppGeoImportarRoute,
+  AppGeoNormalizacaoRoute: AppGeoNormalizacaoRoute,
+  AppGeoResultadoRoute: AppGeoResultadoRoute,
+  AppGeoIndexRoute: AppGeoIndexRoute,
 }
 
-const GeoRouteWithChildren = GeoRoute._addFileChildren(GeoRouteChildren)
+const AppGeoRouteWithChildren =
+  AppGeoRoute._addFileChildren(AppGeoRouteChildren)
+
+interface AppRouteChildren {
+  AppConfiguracoesRoute: typeof AppConfiguracoesRoute
+  AppDicionarioRoute: typeof AppDicionarioRoute
+  AppGeoRoute: typeof AppGeoRouteWithChildren
+  AppHistoricoRoute: typeof AppHistoricoRoute
+  AppProcessarRoute: typeof AppProcessarRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppConfiguracoesRoute: AppConfiguracoesRoute,
+  AppDicionarioRoute: AppDicionarioRoute,
+  AppGeoRoute: AppGeoRouteWithChildren,
+  AppHistoricoRoute: AppHistoricoRoute,
+  AppProcessarRoute: AppProcessarRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
-  ConfiguracoesRoute: ConfiguracoesRoute,
-  DicionarioRoute: DicionarioRoute,
-  GeoRoute: GeoRouteWithChildren,
-  HistoricoRoute: HistoricoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

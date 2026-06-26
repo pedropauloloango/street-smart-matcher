@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { Trash2 } from "lucide-react";
 
-export const Route = createFileRoute("/dicionario")({
+export const Route = createFileRoute("/_app/dicionario")({
   head: () => ({
     meta: [
       { title: "Dicionário · BairroMatch" },

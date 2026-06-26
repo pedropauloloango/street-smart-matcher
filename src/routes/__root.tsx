@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -11,9 +12,8 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { GeoHeaderNav } from "@/components/geo/GeoHeaderNav";
-import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { AuthProvider } from "@/hooks/useAuth";
 
 function NotFoundComponent() {
   return (
@@ -63,15 +63,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "BairroMatch · Padronização SISGRAN" },
-      { name: "description", content: "Padronize bairros da Receita Federal contra a referência SISGRAN de Campo Grande-MS com fuzzy matching e aprendizado contínuo." },
+      { title: "BairroMatch · Conciliação de bairros Campo Grande-MS" },
+      { name: "description", content: "Plataforma para conciliar bairros da Receita Federal com SISGRAN e normalizar endereços com a base oficial de Campo Grande-MS." },
       { name: "author", content: "BairroMatch" },
-      { property: "og:title", content: "BairroMatch · Padronização SISGRAN" },
-      { property: "og:description", content: "Padronize bairros da Receita Federal contra a referência SISGRAN de Campo Grande-MS com fuzzy matching e aprendizado contínuo." },
+      { property: "og:title", content: "BairroMatch · Conciliação de bairros Campo Grande-MS" },
+      { property: "og:description", content: "Plataforma para conciliar bairros da Receita Federal com SISGRAN e normalizar endereços com a base oficial de Campo Grande-MS." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "BairroMatch · Padronização SISGRAN" },
-      { name: "twitter:description", content: "Padronize bairros da Receita Federal contra a referência SISGRAN de Campo Grande-MS com fuzzy matching e aprendizado contínuo." },
+      { name: "twitter:title", content: "BairroMatch · Conciliação de bairros Campo Grande-MS" },
+      { name: "twitter:description", content: "Plataforma para conciliar bairros da Receita Federal com SISGRAN e normalizar endereços com a base oficial de Campo Grande-MS." },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/af17c8a2-8b07-4575-8d23-f5f4a451963f/id-preview-10bbe5b2--32d161a1-1bd5-4d88-bce1-0f446fb6d395.lovable.app-1782477057457.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/af17c8a2-8b07-4575-8d23-f5f4a451963f/id-preview-10bbe5b2--32d161a1-1bd5-4d88-bce1-0f446fb6d395.lovable.app-1782477057457.png" },
     ],
@@ -102,7 +102,7 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
-function Header() {
+function PublicHeader({ showLogin = true }: { showLogin?: boolean }) {
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/80 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
@@ -112,84 +112,55 @@ function Header() {
           </div>
           <div>
             <p className="text-sm font-semibold leading-none">BairroMatch</p>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">SISGRAN · Campo Grande-MS</p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Campo Grande-MS</p>
           </div>
         </Link>
-        <nav className="flex items-center gap-1">
-          <Link
-            to="/"
-            className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
-            activeProps={{ className: "rounded-md px-3 py-1.5 text-sm font-medium bg-secondary text-foreground" }}
-            activeOptions={{ exact: true }}
-          >
-            Processar
-          </Link>
-          <Link
-            to="/historico"
-            className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
-            activeProps={{ className: "rounded-md px-3 py-1.5 text-sm font-medium bg-secondary text-foreground" }}
-          >
-            Histórico
-          </Link>
-          <Link
-            to="/dicionario"
-            className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
-            activeProps={{ className: "rounded-md px-3 py-1.5 text-sm font-medium bg-secondary text-foreground" }}
-          >
-            Dicionário
-          </Link>
-          <GeoHeaderNav />
-          <AuthMenu />
-        </nav>
+        {showLogin ? (
+          <Button asChild size="sm">
+            <Link to="/auth">Entrar</Link>
+          </Button>
+        ) : (
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/">Voltar</Link>
+          </Button>
+        )}
       </div>
     </header>
   );
 }
 
-function AuthMenu() {
-  const { user, isAdmin } = useAuth();
-  if (!user) {
-    return (
-      <Link to="/auth" className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground">
-        Entrar
-      </Link>
-    );
-  }
+function PublicFooter() {
   return (
-    <>
-      {isAdmin && (
-        <Link
-          to="/configuracoes"
-          className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
-          activeProps={{ className: "rounded-md px-3 py-1.5 text-sm font-medium bg-secondary text-foreground" }}
-        >
-          Configurações
-        </Link>
-      )}
-      <button
-        onClick={async () => { await supabase.auth.signOut(); window.location.href = "/auth"; }}
-        className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
-      >
-        Sair
-      </button>
-    </>
+    <footer className="border-t border-border/60 py-6 text-center text-xs text-muted-foreground">
+      BairroMatch · Conciliação de bairros Receita ↔ SISGRAN · GeoBairros CG
+    </footer>
   );
 }
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isLanding = pathname === "/";
+  const isAuth = pathname === "/auth";
+  const isPublic = isLanding || isAuth;
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen">
-        <Header />
-        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+      <AuthProvider>
+        <div className="min-h-screen">
+        {isPublic ? (
+          <>
+            <PublicHeader showLogin={isLanding} />
+            <main className={isAuth ? "mx-auto max-w-7xl px-4 py-8 sm:px-6" : undefined}>
+              <Outlet />
+            </main>
+            {isLanding && <PublicFooter />}
+          </>
+        ) : (
           <Outlet />
-        </main>
-        <footer className="border-t border-border/60 py-6 text-center text-xs text-muted-foreground">
-          BairroMatch · Padronização de bairros Receita ↔ SISGRAN
-        </footer>
-      </div>
+        )}
+        </div>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fetchImportacoes, fetchResultadosStats, type Importacao } from "@/lib/geo/api";
 
-export const Route = createFileRoute("/geo/")({
+export const Route = createFileRoute("/_app/geo/")({
   component: Dashboard,
 });
 

@@ -10,7 +10,7 @@ import { Plus, Trash2, Pencil, Save, X } from "lucide-react";
 import { normalizeGeo } from "@/lib/geo/normalize";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/geo/base")({
+export const Route = createFileRoute("/_app/geo/base")({
   component: BaseOficial,
 });
 

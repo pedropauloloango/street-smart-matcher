@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Database, TrendingUp, FileSpreadsheet } from "lucide-react";
 
-export const Route = createFileRoute("/historico")({
+export const Route = createFileRoute("/_app/historico")({
   head: () => ({
     meta: [
       { title: "Histórico · BairroMatch" },

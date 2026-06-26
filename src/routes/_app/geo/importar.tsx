@@ -10,7 +10,7 @@ import { downloadImportTemplate, IMPORT_TEMPLATE_ROWS } from "@/lib/geo/import-t
 import { geoStore, useGeoStore } from "@/lib/geo/store";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/geo/importar")({
+export const Route = createFileRoute("/_app/geo/importar")({
   component: ImportarPage,
 });
 

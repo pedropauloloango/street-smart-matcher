@@ -35,7 +35,7 @@ import { normalizeGeo } from "@/lib/geo/normalize";
 import { Pencil, RefreshCw, Save, X } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/geo/resultado")({
+export const Route = createFileRoute("/_app/geo/resultado")({
   component: ResultadoPage,
 });
 

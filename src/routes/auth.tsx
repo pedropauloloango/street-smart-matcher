@@ -22,7 +22,7 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/" });
+      if (data.session) navigate({ to: "/processar" });
     });
   }, [navigate]);
 
@@ -32,7 +32,7 @@ function AuthPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) return setError(error.message);
-    navigate({ to: "/" });
+    navigate({ to: "/processar" });
   }
 
   async function handleSignup(e: React.FormEvent) {
@@ -42,7 +42,7 @@ function AuthPage() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/`,
+        emailRedirectTo: `${window.location.origin}/processar`,
         data: { nome_completo: nome },
       },
     });

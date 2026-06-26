@@ -10,7 +10,7 @@ import { fetchResultados } from "@/lib/geo/api";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/geo/normalizacao")({
+export const Route = createFileRoute("/_app/geo/normalizacao")({
   component: NormalizacaoPage,
 });
 
