@@ -399,13 +399,11 @@ export function matchOne(original: string, ds: GeoDataset, line: number): Result
   // 5) Similaridade (bairros, sinônimos e parcelamentos)
 
   type Best = { b: Bairro; score: number; parc?: string };
-  let best: Best | null = null;
-
-
+  const holder: { value: Best | null } = { value: null };
 
   const consider = (b: Bairro, score: number, parc?: string) => {
 
-    if (!best || score > best.score) best = { b, score, parc };
+    if (!holder.value || score > holder.value.score) holder.value = { b, score, parc };
 
   };
 
