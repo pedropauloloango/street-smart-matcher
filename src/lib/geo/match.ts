@@ -433,7 +433,7 @@ export function matchOne(original: string, ds: GeoDataset, line: number): Result
 
 
 
-  const finalBest: Best | null = best;
+  const finalBest = holder.value;
   if (finalBest && finalBest.score >= 85) {
 
     return fill(base, finalBest.b, ds, "similaridade", finalBest.score, finalBest.parc);
