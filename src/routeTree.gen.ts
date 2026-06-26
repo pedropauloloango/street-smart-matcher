@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as HistoricoRouteImport } from './routes/historico'
 import { Route as GeoRouteImport } from './routes/geo'
 import { Route as DicionarioRouteImport } from './routes/dicionario'
+import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GeoIndexRouteImport } from './routes/geo.index'
 import { Route as GeoResultadoRouteImport } from './routes/geo.resultado'
@@ -33,6 +35,16 @@ const GeoRoute = GeoRouteImport.update({
 const DicionarioRoute = DicionarioRouteImport.update({
   id: '/dicionario',
   path: '/dicionario',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -73,6 +85,8 @@ const GeoBaseRoute = GeoBaseRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/configuracoes': typeof ConfiguracoesRoute
   '/dicionario': typeof DicionarioRoute
   '/geo': typeof GeoRouteWithChildren
   '/historico': typeof HistoricoRoute
@@ -85,6 +99,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/configuracoes': typeof ConfiguracoesRoute
   '/dicionario': typeof DicionarioRoute
   '/historico': typeof HistoricoRoute
   '/geo/base': typeof GeoBaseRoute
@@ -97,6 +113,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/configuracoes': typeof ConfiguracoesRoute
   '/dicionario': typeof DicionarioRoute
   '/geo': typeof GeoRouteWithChildren
   '/historico': typeof HistoricoRoute
@@ -111,6 +129,8 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
+    | '/configuracoes'
     | '/dicionario'
     | '/geo'
     | '/historico'
@@ -123,6 +143,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth'
+    | '/configuracoes'
     | '/dicionario'
     | '/historico'
     | '/geo/base'
@@ -134,6 +156,8 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/auth'
+    | '/configuracoes'
     | '/dicionario'
     | '/geo'
     | '/historico'
@@ -147,6 +171,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
+  ConfiguracoesRoute: typeof ConfiguracoesRoute
   DicionarioRoute: typeof DicionarioRoute
   GeoRoute: typeof GeoRouteWithChildren
   HistoricoRoute: typeof HistoricoRoute
@@ -173,6 +199,20 @@ declare module '@tanstack/react-router' {
       path: '/dicionario'
       fullPath: '/dicionario'
       preLoaderRoute: typeof DicionarioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes': {
+      id: '/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof ConfiguracoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -249,6 +289,8 @@ const GeoRouteWithChildren = GeoRoute._addFileChildren(GeoRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
+  ConfiguracoesRoute: ConfiguracoesRoute,
   DicionarioRoute: DicionarioRoute,
   GeoRoute: GeoRouteWithChildren,
   HistoricoRoute: HistoricoRoute,
