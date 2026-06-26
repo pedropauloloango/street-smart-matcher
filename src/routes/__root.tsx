@@ -146,6 +146,36 @@ function Header() {
   );
 }
 
+function AuthMenu() {
+  const { user, isAdmin } = useAuth();
+  if (!user) {
+    return (
+      <Link to="/auth" className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground">
+        Entrar
+      </Link>
+    );
+  }
+  return (
+    <>
+      {isAdmin && (
+        <Link
+          to="/configuracoes"
+          className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
+          activeProps={{ className: "rounded-md px-3 py-1.5 text-sm font-medium bg-secondary text-foreground" }}
+        >
+          Configurações
+        </Link>
+      )}
+      <button
+        onClick={async () => { await supabase.auth.signOut(); window.location.href = "/auth"; }}
+        className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
+      >
+        Sair
+      </button>
+    </>
+  );
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
