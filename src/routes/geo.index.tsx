@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { fetchImportacoes, fetchResultadosStats, type Importacao } from "@/lib/geo/api";
 
 export const Route = createFileRoute("/geo/")({
   component: Dashboard,
@@ -16,41 +17,39 @@ type Stats = {
   similares: number;
   naoEncontrados: number;
   topBairros: { bairro: string; total: number }[];
+  resultTotal: number;
 };
 
 function Dashboard() {
   const [s, setS] = useState<Stats | null>(null);
+  const [filterImp, setFilterImp] = useState<string | null>(null);
+  const [importList, setImportList] = useState<Importacao[]>([]);
+
+  const load = useCallback(async (importacaoId: string | null) => {
+    const [b, p, si, imp, resStats] = await Promise.all([
+      supabase.from("geo_bairros").select("id", { count: "exact", head: true }).eq("ativo", true),
+      supabase.from("geo_parcelamentos").select("id", { count: "exact", head: true }).eq("ativo", true),
+      supabase.from("geo_sinonimos").select("id", { count: "exact", head: true }),
+      supabase.from("geo_importacoes").select("id", { count: "exact", head: true }),
+      fetchResultadosStats(importacaoId),
+    ]);
+    setS({
+      bairros: b.count ?? 0,
+      parcelamentos: p.count ?? 0,
+      sinonimos: si.count ?? 0,
+      importacoes: imp.count ?? 0,
+      encontrados: resStats.encontrados,
+      similares: resStats.similares,
+      naoEncontrados: resStats.naoEncontrados,
+      topBairros: resStats.topBairros,
+      resultTotal: resStats.total,
+    });
+  }, []);
 
   useEffect(() => {
-    (async () => {
-      const sb = supabase as any;
-      const [b, p, si, imp, res] = await Promise.all([
-        sb.from("geo_bairros").select("id", { count: "exact", head: true }),
-        sb.from("geo_parcelamentos").select("id", { count: "exact", head: true }),
-        sb.from("geo_sinonimos").select("id", { count: "exact", head: true }),
-        sb.from("geo_importacoes").select("id", { count: "exact", head: true }),
-        sb.from("geo_resultados").select("bairro_oficial,status_match"),
-      ]);
-      const rows = (res.data ?? []) as { bairro_oficial: string | null; status_match: string }[];
-      const counts = { encontrados: 0, similares: 0, naoEncontrados: 0 };
-      const top: Record<string, number> = {};
-      for (const r of rows) {
-        if (r.status_match === "encontrado") counts.encontrados++;
-        else if (r.status_match === "similaridade") counts.similares++;
-        else counts.naoEncontrados++;
-        if (r.bairro_oficial) top[r.bairro_oficial] = (top[r.bairro_oficial] ?? 0) + 1;
-      }
-      const topBairros = Object.entries(top).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([bairro, total]) => ({ bairro, total }));
-      setS({
-        bairros: b.count ?? 0,
-        parcelamentos: p.count ?? 0,
-        sinonimos: si.count ?? 0,
-        importacoes: imp.count ?? 0,
-        ...counts,
-        topBairros,
-      });
-    })();
-  }, []);
+    fetchImportacoes().then(setImportList);
+    load(null);
+  }, [load]);
 
   const total = s ? s.encontrados + s.similares + s.naoEncontrados : 0;
   const sucesso = total ? Math.round(((s!.encontrados + s!.similares) / total) * 100) : 0;
@@ -68,27 +67,69 @@ function Dashboard() {
         <Stat label="Parcelamentos" value={s?.parcelamentos ?? "—"} />
         <Stat label="Sinônimos" value={s?.sinonimos ?? "—"} />
         <Stat label="Importações" value={s?.importacoes ?? "—"} />
-        <Stat label="Sucesso normalização" value={`${sucesso}%`} accent />
+        <Stat label="Sucesso normalização" value={filterImp ? `${sucesso}%` : total ? `${sucesso}%` : "—"} accent />
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Filtrar gráficos por importação</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <select
+            className="h-9 w-full max-w-md rounded-md border border-input bg-background px-3 text-sm"
+            value={filterImp ?? ""}
+            onChange={(e) => {
+              const id = e.target.value || null;
+              setFilterImp(id);
+              load(id);
+            }}
+          >
+            <option value="">Todas as importações (acumulado)</option>
+            {importList.map((imp) => (
+              <option key={imp.id} value={imp.id}>
+                {imp.nome_arquivo} — {new Date(imp.data_importacao).toLocaleString("pt-BR")}
+              </option>
+            ))}
+          </select>
+          {filterImp && (
+            <p className="text-xs text-muted-foreground">
+              Exibindo estatísticas da importação selecionada ({s?.resultTotal ?? 0} registros).
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle>Status de registros</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>Registros encontrados</CardTitle>
+          </CardHeader>
           <CardContent>
             <Bar label="Encontrados" value={s?.encontrados ?? 0} total={total} color="bg-emerald-500" />
-            <Bar label="Por similaridade" value={s?.similares ?? 0} total={total} color="bg-amber-500" />
+            <Bar label="Encontrado por Similaridade" value={s?.similares ?? 0} total={total} color="bg-amber-500" />
             <Bar label="Não encontrados" value={s?.naoEncontrados ?? 0} total={total} color="bg-rose-500" />
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>Top bairros consultados</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>Top bairros mais consultados</CardTitle>
+          </CardHeader>
           <CardContent className="space-y-2">
-            {s?.topBairros.length ? s.topBairros.map((t) => (
-              <div key={t.bairro}>
-                <div className="flex justify-between text-sm"><span>{t.bairro}</span><span className="text-muted-foreground">{t.total}</span></div>
-                <div className="h-2 w-full rounded bg-secondary"><div className="h-full rounded bg-primary" style={{ width: `${(t.total / maxTop) * 100}%` }} /></div>
-              </div>
-            )) : <p className="text-sm text-muted-foreground">Sem dados ainda.</p>}
+            {s?.topBairros.length ? (
+              s.topBairros.map((t) => (
+                <div key={t.bairro}>
+                  <div className="flex justify-between text-sm">
+                    <span>{t.bairro}</span>
+                    <span className="text-muted-foreground">{t.total}</span>
+                  </div>
+                  <div className="h-2 w-full rounded bg-secondary">
+                    <div className="h-full rounded bg-primary" style={{ width: `${(t.total / maxTop) * 100}%` }} />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">Sem dados ainda.</p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -111,8 +152,13 @@ function Bar({ label, value, total, color }: { label: string; value: number; tot
   const pct = total ? (value / total) * 100 : 0;
   return (
     <div className="mb-3">
-      <div className="flex justify-between text-sm"><span>{label}</span><span className="text-muted-foreground">{value}</span></div>
-      <div className="h-2 w-full rounded bg-secondary"><div className={"h-full rounded " + color} style={{ width: `${pct}%` }} /></div>
+      <div className="flex justify-between text-sm">
+        <span>{label}</span>
+        <span className="text-muted-foreground">{value}</span>
+      </div>
+      <div className="h-2 w-full rounded bg-secondary">
+        <div className={"h-full rounded " + color} style={{ width: `${pct}%` }} />
+      </div>
     </div>
   );
 }

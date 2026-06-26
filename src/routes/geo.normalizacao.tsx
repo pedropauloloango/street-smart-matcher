@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Wand2 } from "lucide-react";
 import { geoStore, useGeoStore } from "@/lib/geo/store";
 import { loadGeoDataset, matchOne } from "@/lib/geo/match";
+import { fetchResultados } from "@/lib/geo/api";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -70,6 +71,8 @@ function NormalizacaoPage() {
       }
 
       geoStore.set({ results, importacaoId: importacao_id });
+      const persisted = await fetchResultados(importacao_id);
+      geoStore.set({ results: persisted, importacaoId: importacao_id });
       toast.success(`${enc + sim} de ${results.length} bairros normalizados (${Math.round(((enc + sim) / results.length) * 100)}%)`);
       navigate({ to: "/geo/resultado" });
     } catch (e: any) {

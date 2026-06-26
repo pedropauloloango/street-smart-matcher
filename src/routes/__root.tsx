@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { GeoHeaderNav } from "@/components/geo/GeoHeaderNav";
 
 function NotFoundComponent() {
   return (
@@ -131,6 +132,7 @@ function Header() {
           >
             Dicionário
           </Link>
+          <GeoHeaderNav />
         </nav>
       </div>
     </header>

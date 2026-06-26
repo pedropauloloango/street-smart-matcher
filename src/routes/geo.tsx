@@ -1,18 +1,12 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { MapPin, Database, Upload, Wand2, Table2, Download, LayoutDashboard } from "lucide-react";
+import { MapPin } from "lucide-react";
+import { GEO_NAV_ITEMS, isGeoNavActive } from "@/lib/geo/nav";
 
 export const Route = createFileRoute("/geo")({
   component: GeoLayout,
 });
 
-const items = [
-  { to: "/geo", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { to: "/geo/base", label: "Base Oficial", icon: Database, exact: false },
-  { to: "/geo/importar", label: "Importar Planilha", icon: Upload, exact: false },
-  { to: "/geo/normalizacao", label: "Normalização", icon: Wand2, exact: false },
-  { to: "/geo/resultado", label: "Resultado", icon: Table2, exact: false },
-  { to: "/geo/exportacoes", label: "Exportações", icon: Download, exact: false },
-] as const;
+const items = GEO_NAV_ITEMS;
 
 function GeoLayout() {
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -30,7 +24,7 @@ function GeoLayout() {
         </div>
         <nav className="flex flex-col gap-1">
           {items.map((it) => {
-            const active = it.exact ? path === it.to : path === it.to || path.startsWith(it.to + "/");
+            const active = isGeoNavActive(path, it);
             return (
               <Link
                 key={it.to}

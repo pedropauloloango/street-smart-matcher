@@ -3,6 +3,7 @@ import { useSyncExternalStore } from "react";
 import type { Row } from "./io";
 
 export type ResultRow = {
+  id?: string;
   linha: number;
   bairro_original: string;
   bairro_oficial: string | null;

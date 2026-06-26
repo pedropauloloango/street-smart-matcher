@@ -1,11 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { Upload, FileSpreadsheet } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Upload, FileSpreadsheet, Download, FileText } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { readSheet, guessBairroColumn } from "@/lib/geo/io";
+import { downloadImportTemplate, IMPORT_TEMPLATE_ROWS } from "@/lib/geo/import-template";
 import { geoStore, useGeoStore } from "@/lib/geo/store";
 import { toast } from "sonner";
 
@@ -48,6 +49,26 @@ function ImportarPage() {
         <h1 className="text-2xl font-semibold">Importar Planilha</h1>
         <p className="text-sm text-muted-foreground">Aceita arquivos CSV e XLSX. Selecione qual coluna contém o bairro.</p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Planilha modelo</CardTitle>
+          <CardDescription>
+            Baixe um arquivo de exemplo com {IMPORT_TEMPLATE_ROWS.length} bairros em grafias variadas (abreviações,
+            acentos, maiúsculas/minúsculas e casos para teste de similaridade).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => downloadImportTemplate("xlsx")}>
+            <Download className="h-4 w-4" />
+            Baixar modelo (.xlsx)
+          </Button>
+          <Button variant="outline" onClick={() => downloadImportTemplate("csv")}>
+            <FileText className="h-4 w-4" />
+            Baixar modelo (.csv)
+          </Button>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="p-0">
