@@ -398,13 +398,12 @@ export function matchOne(original: string, ds: GeoDataset, line: number): Result
 
   // 5) Similaridade (bairros, sinônimos e parcelamentos)
 
-  let best: { b: Bairro; score: number; parc?: string } | null = null;
-
-
+  type Best = { b: Bairro; score: number; parc?: string };
+  const holder: { value: Best | null } = { value: null };
 
   const consider = (b: Bairro, score: number, parc?: string) => {
 
-    if (!best || score > best.score) best = { b, score, parc };
+    if (!holder.value || score > holder.value.score) holder.value = { b, score, parc };
 
   };
 
@@ -434,13 +433,14 @@ export function matchOne(original: string, ds: GeoDataset, line: number): Result
 
 
 
-  if (best && best.score >= 85) {
+  const finalBest = holder.value;
+  if (finalBest && finalBest.score >= 85) {
 
-    return fill(base, best.b, ds, "similaridade", best.score, best.parc);
+    return fill(base, finalBest.b, ds, "similaridade", finalBest.score, finalBest.parc);
 
   }
 
-  return { ...base, percentual_confianca: best?.score ?? 0 };
+  return { ...base, percentual_confianca: finalBest?.score ?? 0 };
 
 }
 
