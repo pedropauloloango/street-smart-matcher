@@ -398,7 +398,8 @@ export function matchOne(original: string, ds: GeoDataset, line: number): Result
 
   // 5) Similaridade (bairros, sinônimos e parcelamentos)
 
-  let best: { b: Bairro; score: number; parc?: string } | null = null;
+  type Best = { b: Bairro; score: number; parc?: string };
+  let best: Best | null = null;
 
 
 
