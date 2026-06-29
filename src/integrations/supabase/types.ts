@@ -50,30 +50,6 @@ export type Database = {
         }
         Relationships: []
       }
-      geo_bairros: {
-        Row: {
-          ativo: boolean
-          bairro_oficial: string
-          data_cadastro: string
-          id: string
-          regiao_urbana: string | null
-        }
-        Insert: {
-          ativo?: boolean
-          bairro_oficial: string
-          data_cadastro?: string
-          id?: string
-          regiao_urbana?: string | null
-        }
-        Update: {
-          ativo?: boolean
-          bairro_oficial?: string
-          data_cadastro?: string
-          id?: string
-          regiao_urbana?: string | null
-        }
-        Relationships: []
-      }
       geo_bairro_ceps: {
         Row: {
           ativo: boolean
@@ -111,6 +87,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      geo_bairros: {
+        Row: {
+          ativo: boolean
+          bairro_oficial: string
+          data_cadastro: string
+          id: string
+          regiao_urbana: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          bairro_oficial: string
+          data_cadastro?: string
+          id?: string
+          regiao_urbana?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          bairro_oficial?: string
+          data_cadastro?: string
+          id?: string
+          regiao_urbana?: string | null
+        }
+        Relationships: []
       }
       geo_importacoes: {
         Row: {
