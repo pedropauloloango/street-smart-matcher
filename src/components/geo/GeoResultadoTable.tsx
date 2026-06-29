@@ -4,11 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import type { ResultRow } from "@/lib/geo/store";
-import { Pencil, Save, X } from "lucide-react";
+import { Copy, Pencil, Save, X } from "lucide-react";
 import type { BairroSuggestion } from "@/lib/geo/suggest-local";
-import { suggestionKey } from "@/lib/geo/suggest-local";
+import { suggestionKey, hasSuggestionSearchContext, correctionGroupKey } from "@/lib/geo/suggest-local";
 import { formatCep } from "@/lib/geo/cep";
 import { GeoSuggestionChips } from "@/components/geo/GeoSuggestionChips";
+import { toast } from "sonner";
 
 type Bairro = { id: string; bairro_oficial: string; regiao_urbana: string | null };
 
@@ -31,13 +32,13 @@ type GeoResultadoTableProps = {
   onToggleSelect: (key: string, checked: boolean) => void;
   onToggleSelectAll: (checked: boolean) => void;
   onEditBairroIdChange: (id: string) => void;
-  onSelectSameInformado: (bairro: string) => void;
+  onSelectSameInformado: (row: ResultRow) => void;
   onStartEdit: (row: ResultRow) => void;
   onSaveCorrection: (row: ResultRow) => void;
   onCancelEdit: () => void;
   suggestionsCache: Map<string, BairroSuggestion[]>;
   loadingSuggestions: Set<string>;
-  onFetchSuggestions: (rows: ResultRow[], force?: boolean) => void;
+  onFetchSuggestions: (rows: ResultRow[], options?: { force?: boolean; includeWeb?: boolean }) => void;
   onApplySuggestion: (row: ResultRow, bairroId: string) => void;
 };
 
@@ -83,7 +84,7 @@ export const GeoResultadoTable = memo(function GeoResultadoTable({
               </TableHead>
               <TableHead>Linha</TableHead>
               <TableHead>Bairro Informado</TableHead>
-              <TableHead>Logradouro</TableHead>
+              <TableHead className="min-w-[14rem]">Logradouro</TableHead>
               <TableHead>CEP</TableHead>
               <TableHead>Bairro Oficial</TableHead>
               <TableHead>Parcelamento</TableHead>
@@ -105,7 +106,7 @@ export const GeoResultadoTable = memo(function GeoResultadoTable({
                 editing={editId === rowKey(r)}
                 editBairroId={editBairroId}
                 bairros={bairros}
-                sameInformadoCount={informadoCountMap.get(r.bairro_original) ?? 1}
+                sameInformadoCount={informadoCountMap.get(correctionGroupKey(r)) ?? 1}
                 onToggleSelect={onToggleSelect}
                 onEditBairroIdChange={onEditBairroIdChange}
                 onSelectSameInformado={onSelectSameInformado}
@@ -115,7 +116,7 @@ export const GeoResultadoTable = memo(function GeoResultadoTable({
                 canEdit={canEdit(r)}
                 suggestions={suggestionsCache.get(sugKey)}
                 suggestionsLoading={loadingSuggestions.has(sugKey)}
-                onFetchSuggestions={() => onFetchSuggestions([r], true)}
+                onFetchSuggestions={() => onFetchSuggestions([r], { force: true, includeWeb: true })}
                 onApplySuggestion={onApplySuggestion}
               />
             );})}
@@ -144,7 +145,7 @@ type RowProps = {
   canEdit: boolean;
   onToggleSelect: (key: string, checked: boolean) => void;
   onEditBairroIdChange: (id: string) => void;
-  onSelectSameInformado: (bairro: string) => void;
+  onSelectSameInformado: (row: ResultRow) => void;
   onStartEdit: (row: ResultRow) => void;
   onSaveCorrection: (row: ResultRow) => void;
   onCancelEdit: () => void;
@@ -187,21 +188,19 @@ const ResultadoTableRow = memo(function ResultadoTableRow({
       <TableCell>{r.linha}</TableCell>
       <TableCell>
         <div className="flex flex-col gap-0.5">
-          <span>{r.bairro_original}</span>
+          <span>{r.bairro_original || "—"}</span>
           {sameInformadoCount > 1 && (
             <button
               type="button"
               className="text-left text-[10px] text-primary hover:underline"
-              onClick={() => onSelectSameInformado(r.bairro_original)}
+              onClick={() => onSelectSameInformado(r)}
             >
               Editar {sameInformadoCount} iguais
             </button>
           )}
         </div>
       </TableCell>
-      <TableCell className="max-w-[180px] truncate" title={r.logradouro ?? ""}>
-        {r.logradouro ?? "—"}
-      </TableCell>
+      <LogradouroCell value={r.logradouro} />
       <TableCell className="whitespace-nowrap">{r.cep ? formatCep(r.cep) : "—"}</TableCell>
       <TableCell>
         {editing ? (
@@ -220,7 +219,9 @@ const ResultadoTableRow = memo(function ResultadoTableRow({
         ) : (
           <div>
             <span>{r.bairro_oficial ?? "—"}</span>
-            {r.status_match === "nao_encontrado" && !editing && (
+            {r.status_match === "nao_encontrado" &&
+              !editing &&
+              hasSuggestionSearchContext(r.bairro_original, { cep: r.cep, logradouro: r.logradouro }) && (
               <GeoSuggestionChips
                 informado={r.bairro_original}
                 suggestions={suggestions}
@@ -299,9 +300,44 @@ export function filterResultIndex(
 export function buildInformadoCountMap(results: ResultRow[]) {
   const m = new Map<string, number>();
   for (const r of results) {
-    m.set(r.bairro_original, (m.get(r.bairro_original) ?? 0) + 1);
+    const key = correctionGroupKey(r);
+    m.set(key, (m.get(key) ?? 0) + 1);
   }
   return m;
 }
 
 export const TABLE_PAGE_SIZE = 150;
+
+function LogradouroCell({ value }: { value: string | null | undefined }) {
+  if (!value) {
+    return <TableCell className="min-w-[14rem] align-top">—</TableCell>;
+  }
+
+  const copyLogradouro = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success("Logradouro copiado");
+    } catch {
+      toast.error("Não foi possível copiar o logradouro");
+    }
+  };
+
+  return (
+    <TableCell className="min-w-[14rem] align-top">
+      <div className="flex items-start gap-1">
+        <span className="whitespace-normal break-words text-sm leading-snug">{value}</span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
+          onClick={() => void copyLogradouro()}
+          title="Copiar logradouro"
+          aria-label="Copiar logradouro"
+        >
+          <Copy className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </TableCell>
+  );
+}

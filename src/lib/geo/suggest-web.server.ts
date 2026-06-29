@@ -127,7 +127,12 @@ export async function fetchDuckDuckGoTexts(informado: string, ctx?: SuggestConte
   const log = ctx?.logradouro?.trim() ?? "";
   const q = cep
     ? `CEP ${formatCepDisplay(cep)} ${log} Campo Grande MS bairro parcelamento`
-    : `bairro ${informado} ${log} Campo Grande MS`;
+    : log
+      ? `${log} Campo Grande MS bairro parcelamento`
+      : informado.trim()
+        ? `bairro ${informado} ${log} Campo Grande MS`
+        : "";
+  if (!q) return [];
 
   const body = new URLSearchParams({ q });
   const res = await fetch("https://html.duckduckgo.com/html/", {

@@ -34,7 +34,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { normalizeGeo } from "@/lib/geo/normalize";
 import { Pencil, RefreshCw, Save, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
-import { getLocalSuggestions, suggestionKey, type BairroSuggestion, type OfficialParcelamento } from "@/lib/geo/suggest-local";
+import { getLocalSuggestions, suggestionKey, hasSuggestionSearchContext, sameCorrectionGroup, type BairroSuggestion, type OfficialParcelamento } from "@/lib/geo/suggest-local";
 import type { BairroCep } from "@/lib/geo/cep";
 import { fetchAllRows } from "@/lib/geo/api";
 
@@ -141,7 +141,7 @@ function ResultadoPage() {
     const seen = new Set<string>();
     const rows: ResultRow[] = [];
     for (const r of results) {
-      if (r.status_match === "nao_encontrado" && r.bairro_original.trim()) {
+      if (r.status_match === "nao_encontrado" && hasSuggestionSearchContext(r.bairro_original, { cep: r.cep, logradouro: r.logradouro })) {
         const key = suggestionKey(r.bairro_original, { cep: r.cep, logradouro: r.logradouro });
         if (!seen.has(key)) {
           seen.add(key);
@@ -153,17 +153,30 @@ function ResultadoPage() {
   }, [results]);
 
   const fetchSuggestions = useCallback(
-    async (targets: ResultRow[], options?: { force?: boolean; includeWeb?: boolean }) => {
-      const force = options?.force ?? false;
-      const includeWeb = options?.includeWeb ?? true;
+    async (
+      targets: ResultRow[],
+      options?: { force?: boolean; includeWeb?: boolean } | boolean,
+    ) => {
+      const opts = typeof options === "boolean" ? { force: options } : (options ?? {});
+      const force = opts.force ?? false;
+      const includeWeb = opts.includeWeb ?? true;
       if (!bairros.length) return;
 
-      const items = targets.map((row) => ({
-        key: suggestionKey(row.bairro_original, { cep: row.cep, logradouro: row.logradouro }),
-        informado: row.bairro_original,
-        cep: row.cep,
-        logradouro: row.logradouro,
-      }));
+      const items = targets
+        .map((row) => ({
+          key: suggestionKey(row.bairro_original, { cep: row.cep, logradouro: row.logradouro }),
+          informado: row.bairro_original,
+          cep: row.cep,
+          logradouro: row.logradouro,
+        }))
+        .filter((item) =>
+          hasSuggestionSearchContext(item.informado, { cep: item.cep, logradouro: item.logradouro }),
+        );
+
+      if (!items.length) {
+        toast.info("Informe bairro, CEP ou logradouro para buscar sugestões.");
+        return;
+      }
 
       const pending = items.filter((item) => {
         if (force) return true;
@@ -341,8 +354,8 @@ function ResultadoPage() {
   );
 
   const selectSameBairroInformado = useCallback(
-    (bairroInformado: string) => {
-      const rows = results.filter((r) => r.bairro_original === bairroInformado);
+    (row: ResultRow) => {
+      const rows = results.filter((r) => sameCorrectionGroup(r, row));
       setSelected(new Set(rows.map(rowKey)));
       openBulkModal(rows);
     },
@@ -404,18 +417,21 @@ function ResultadoPage() {
     async (row: ResultRow, bairroId: string) => {
       const target = bairros.find((b) => b.id === bairroId);
       if (!target) return;
-      const sameRows = results.filter((r) => r.bairro_original === row.bairro_original);
+      const sameRows = results.filter((r) => sameCorrectionGroup(r, row));
       const count = sameRows.length;
+      const groupLabel = row.bairro_original.trim()
+        ? `"${row.bairro_original}"`
+        : `CEP ${row.cep ?? "—"} / logradouro "${row.logradouro ?? "—"}"`;
       const applyAll =
         count > 1 &&
         confirm(
-          `Aplicar "${target.bairro_oficial}" para "${row.bairro_original}"?\n\nHá ${count} registro(s) com este bairro informado. Aplicar a todos?`,
+          `Aplicar "${target.bairro_oficial}" para ${groupLabel}?\n\nHá ${count} registro(s) neste grupo. Aplicar a todos?`,
         );
       try {
         await applyCorrection(applyAll ? sameRows : [row], target);
         toast.success(
           applyAll
-            ? `"${row.bairro_original}" → ${target.bairro_oficial} (${count} registro(s))`
+            ? `${groupLabel} → ${target.bairro_oficial} (${count} registro(s))`
             : `Correção aplicada: ${target.bairro_oficial}`,
         );
       } catch (e: unknown) {

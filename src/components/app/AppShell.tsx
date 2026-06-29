@@ -69,6 +69,7 @@ function NavContent({ path, onNavigate }: { path: string; onNavigate?: () => voi
 
 export function AppShell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const wideContent = path === "/geo/resultado";
   const { user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -152,8 +153,20 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Button>
         </header>
 
-        <main className="flex-1 overflow-x-hidden px-4 py-6 sm:px-6 md:py-8">
-          <div className="mx-auto max-w-7xl">{children}</div>
+        <main
+          className={cn(
+            "flex-1 min-w-0 px-4 py-6 sm:px-6 md:py-8",
+            wideContent ? "overflow-x-auto" : "overflow-x-hidden",
+          )}
+        >
+          <div
+            className={cn(
+              "mx-auto w-full",
+              wideContent ? "max-w-none min-w-[72rem]" : "max-w-7xl",
+            )}
+          >
+            {children}
+          </div>
         </main>
       </div>
     </div>

@@ -10,6 +10,7 @@ import {
   type SuggestContext,
 } from "./suggest-local";
 import { buildWebSuggestions } from "./suggest-web.server";
+import { normalizeCep } from "./cep";
 
 const bairroSchema = z.object({
   id: z.string().uuid(),
@@ -25,12 +26,20 @@ const parcSchema = z.object({
   regiao_urbana: z.string().nullable(),
 });
 
-const itemSchema = z.object({
-  key: z.string().min(1),
-  informado: z.string().trim().min(1),
-  cep: z.string().optional().nullable(),
-  logradouro: z.string().optional().nullable(),
-});
+const itemSchema = z
+  .object({
+    key: z.string().min(1),
+    informado: z.string().trim(),
+    cep: z.string().optional().nullable(),
+    logradouro: z.string().optional().nullable(),
+  })
+  .refine(
+    (item) =>
+      item.informado.length > 0 ||
+      !!(item.cep && normalizeCep(item.cep)) ||
+      !!(item.logradouro && item.logradouro.trim()),
+    { message: "Informe bairro, CEP ou logradouro para buscar sugestões." },
+  );
 
 const cepSchema = z.object({
   id: z.string().uuid(),

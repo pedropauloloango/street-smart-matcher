@@ -42,6 +42,28 @@ export function suggestionKey(informado: string, ctx?: SuggestContext): string {
   return `${informado}|${cep}|${log}`;
 }
 
+/** Há dados suficientes para buscar sugestões (bairro, CEP ou logradouro). */
+export function hasSuggestionSearchContext(informado: string, ctx?: SuggestContext): boolean {
+  return !!(informado.trim() || normalizeCep(ctx?.cep) || ctx?.logradouro?.trim());
+}
+
+/** Agrupa correções: bairro informado OU (CEP + logradouro) quando o bairro está vazio. */
+export function correctionGroupKey(row: {
+  bairro_original: string;
+  cep?: string | null;
+  logradouro?: string | null;
+}): string {
+  if (row.bairro_original.trim()) return `b:${row.bairro_original}`;
+  return `z:${suggestionKey(row.bairro_original, { cep: row.cep, logradouro: row.logradouro })}`;
+}
+
+export function sameCorrectionGroup(
+  a: { bairro_original: string; cep?: string | null; logradouro?: string | null },
+  b: { bairro_original: string; cep?: string | null; logradouro?: string | null },
+): boolean {
+  return correctionGroupKey(a) === correctionGroupKey(b);
+}
+
 function tokenSet(text: string): Set<string> {
   return new Set(
     normalizeGeo(text)
@@ -66,7 +88,7 @@ export function getLocalSuggestions(
   ctx?: SuggestContext,
 ): BairroSuggestion[] {
   const norm = normalizeGeo(informado);
-  if (!norm && !ctx?.cep) return [];
+  if (!norm && !ctx?.cep && !ctx?.logradouro?.trim()) return [];
 
   const cepsByBairro = ctx?.ceps?.length ? buildCepsByBairro(ctx.ceps) : new Map<string, BairroCep[]>();
   const scored: BairroSuggestion[] = [];

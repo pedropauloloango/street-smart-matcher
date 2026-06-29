@@ -120,8 +120,13 @@ export async function updateResultado(id: string, patch: ResultadoPatch) {
 
 export async function updateResultadosBulk(ids: string[], patch: ResultadoPatch) {
   if (!ids.length) return;
-  const { error } = await supabase.from("geo_resultados").update(resultadoPatchToDb(patch)).in("id", ids);
-  if (error) throw error;
+  const CHUNK = 80;
+  const payload = resultadoPatchToDb(patch);
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const chunk = ids.slice(i, i + CHUNK);
+    const { error } = await supabase.from("geo_resultados").update(payload).in("id", chunk);
+    if (error) throw error;
+  }
 }
 
 export async function recalcImportacaoStats(importacaoId: string) {
