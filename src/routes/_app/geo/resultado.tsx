@@ -34,7 +34,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { normalizeGeo } from "@/lib/geo/normalize";
 import { Pencil, RefreshCw, Save, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
-import { fetchBairroSuggestions } from "@/lib/geo/suggest.functions";
 import { getLocalSuggestions, suggestionKey, type BairroSuggestion, type OfficialParcelamento } from "@/lib/geo/suggest-local";
 import type { BairroCep } from "@/lib/geo/cep";
 import { fetchAllRows } from "@/lib/geo/api";
@@ -205,6 +204,7 @@ function ResultadoPage() {
       }
 
       try {
+        const { fetchBairroSuggestions } = await import("@/lib/geo/suggest.functions");
         for (let offset = 0; offset < pending.length; offset += 10) {
           const chunk = pending.slice(offset, offset + 10);
           const map = await fetchBairroSuggestions({

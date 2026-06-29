@@ -15,8 +15,8 @@ const createUserSchema = z.object({
 export type CreateAppUserInput = z.infer<typeof createUserSchema>;
 
 export const createAppUser = createServerFn({ method: "POST" })
+  .inputValidator(createUserSchema)
   .middleware([requireSupabaseAuth])
-  .validator(createUserSchema)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as {
       supabase: import("@supabase/supabase-js").SupabaseClient;
@@ -85,8 +85,8 @@ const changeRoleSchema = z.object({
 });
 
 export const changeAppUserRole = createServerFn({ method: "POST" })
+  .inputValidator(changeRoleSchema)
   .middleware([requireSupabaseAuth])
-  .validator(changeRoleSchema)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as {
       supabase: import("@supabase/supabase-js").SupabaseClient;
