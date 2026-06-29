@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Pencil, Save, X } from "lucide-react";
+import { Plus, Trash2, Pencil, Save, X, ChevronDown, ChevronUp } from "lucide-react";
 import { normalizeGeo } from "@/lib/geo/normalize";
+import { formatCep, normalizeCep } from "@/lib/geo/cep";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/geo/base")({
@@ -16,6 +17,14 @@ export const Route = createFileRoute("/_app/geo/base")({
 
 type Bairro = { id: string; bairro_oficial: string; regiao_urbana: string | null; ativo: boolean };
 type Parc = { id: string; bairro_id: string; parcelamento: string; ativo: boolean };
+type BairroCepRow = {
+  id: string;
+  bairro_id: string;
+  cep_inicio: string;
+  cep_fim: string | null;
+  logradouro: string | null;
+  ativo: boolean;
+};
 type Sinonimo = {
   id: string;
   bairro_id: string;
@@ -28,9 +37,12 @@ type Sinonimo = {
 function BaseOficial() {
   const [bairros, setBairros] = useState<Bairro[]>([]);
   const [parc, setParc] = useState<Parc[]>([]);
+  const [ceps, setCeps] = useState<BairroCepRow[]>([]);
   const [sinonimos, setSinonimos] = useState<Sinonimo[]>([]);
   const [fBairro, setFBairro] = useState("");
   const [fRegiao, setFRegiao] = useState("");
+  const [fParc, setFParc] = useState("");
+  const [fSemParc, setFSemParc] = useState(false);
   const [fSin, setFSin] = useState("");
   const [novoBairro, setNovoBairro] = useState("");
   const [novaRegiao, setNovaRegiao] = useState("");
@@ -41,6 +53,9 @@ function BaseOficial() {
   });
   const [openId, setOpenId] = useState<string | null>(null);
   const [novoParc, setNovoParc] = useState("");
+  const [novoCepInicio, setNovoCepInicio] = useState("");
+  const [novoCepFim, setNovoCepFim] = useState("");
+  const [novoCepLog, setNovoCepLog] = useState("");
   const [editParcId, setEditParcId] = useState<string | null>(null);
   const [editParcVal, setEditParcVal] = useState("");
   const [novoSinNome, setNovoSinNome] = useState("");
@@ -51,12 +66,15 @@ function BaseOficial() {
 
   const load = async () => {
     try {
-      const [b, p, s] = await Promise.all([
+      const [b, p, c, s] = await Promise.all([
         fetchAllRows<Bairro>((from, to) =>
           supabase.from("geo_bairros").select("*").eq("ativo", true).order("bairro_oficial").range(from, to),
         ),
         fetchAllRows<Parc>((from, to) =>
           supabase.from("geo_parcelamentos").select("*").eq("ativo", true).order("parcelamento").range(from, to),
+        ),
+        fetchAllRows<BairroCepRow>((from, to) =>
+          supabase.from("geo_bairro_ceps").select("*").eq("ativo", true).order("cep_inicio").range(from, to),
         ),
         fetchAllRows<Sinonimo>((from, to) =>
           supabase.from("geo_sinonimos").select("*").order("nome_informado").range(from, to),
@@ -64,6 +82,7 @@ function BaseOficial() {
       ]);
       setBairros(b);
       setParc(p);
+      setCeps(c);
       setSinonimos(s);
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Falha ao carregar base oficial");
@@ -78,16 +97,49 @@ function BaseOficial() {
     [bairros],
   );
 
+  const parcByB = useMemo(() => {
+    const m = new Map<string, Parc[]>();
+    for (const x of parc) {
+      const a = m.get(x.bairro_id) ?? [];
+      a.push(x);
+      m.set(x.bairro_id, a);
+    }
+    for (const [, list] of m) {
+      list.sort((a, b) => a.parcelamento.localeCompare(b.parcelamento, "pt-BR"));
+    }
+    return m;
+  }, [parc]);
+
+  const cepsByB = useMemo(() => {
+    const m = new Map<string, BairroCepRow[]>();
+    for (const x of ceps) {
+      const a = m.get(x.bairro_id) ?? [];
+      a.push(x);
+      m.set(x.bairro_id, a);
+    }
+    return m;
+  }, [ceps]);
+
   const filtered = useMemo(
     () =>
       bairros.filter((b) => {
+        const parcList = parcByB.get(b.id) ?? [];
+        const parcText = parcList.map((p) => p.parcelamento).join(" ").toLowerCase();
+        const qParc = fParc.toLowerCase();
         return (
           (!fBairro || b.bairro_oficial.toLowerCase().includes(fBairro.toLowerCase())) &&
-          (!fRegiao || b.regiao_urbana === fRegiao)
+          (!fRegiao || b.regiao_urbana === fRegiao) &&
+          (!fSemParc || parcList.length === 0) &&
+          (!qParc || b.bairro_oficial.toLowerCase().includes(qParc) || parcText.includes(qParc))
         );
       }),
-    [bairros, fBairro, fRegiao],
+    [bairros, fBairro, fRegiao, fParc, fSemParc, parcByB],
   );
+
+  const stats = useMemo(() => {
+    const semParc = bairros.filter((b) => !(parcByB.get(b.id) ?? []).length).length;
+    return { bairros: bairros.length, parcelamentos: parc.length, semParc };
+  }, [bairros, parc, parcByB]);
 
   const bairroName = useMemo(() => {
     const m = new Map<string, string>();
@@ -107,16 +159,6 @@ function BaseOficial() {
       }),
     [sinonimos, fSin, bairroName],
   );
-
-  const parcByB = useMemo(() => {
-    const m = new Map<string, Parc[]>();
-    for (const x of parc) {
-      const a = m.get(x.bairro_id) ?? [];
-      a.push(x);
-      m.set(x.bairro_id, a);
-    }
-    return m;
-  }, [parc]);
 
   const addBairro = async () => {
     const nome = novoBairro.trim();
@@ -190,6 +232,29 @@ function BaseOficial() {
     load();
   };
 
+  const addCep = async (bairro_id: string) => {
+    const inicio = normalizeCep(novoCepInicio);
+    if (!inicio) return toast.error("Informe um CEP ou prefixo válido (5–8 dígitos)");
+    const fim = novoCepFim.trim() ? normalizeCep(novoCepFim) : null;
+    const { error } = await supabase.from("geo_bairro_ceps").insert({
+      bairro_id,
+      cep_inicio: inicio,
+      cep_fim: fim,
+      logradouro: novoCepLog.trim() || null,
+    });
+    if (error) return toast.error(error.message);
+    setNovoCepInicio("");
+    setNovoCepFim("");
+    setNovoCepLog("");
+    toast.success("CEP cadastrado");
+    load();
+  };
+
+  const delCep = async (id: string) => {
+    await supabase.from("geo_bairro_ceps").update({ ativo: false }).eq("id", id);
+    load();
+  };
+
   const addSinonimo = async () => {
     if (!novoSinNome.trim() || !novoSinBairroId) return;
     const { error } = await supabase.from("geo_sinonimos").insert({
@@ -230,7 +295,9 @@ function BaseOficial() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Base Oficial</h1>
-        <p className="text-sm text-muted-foreground">Cadastro de bairros oficiais, regiões urbanas, parcelamentos e sinônimos.</p>
+        <p className="text-sm text-muted-foreground">
+          Cadastro de bairros oficiais, regiões urbanas, parcelamentos, faixas de CEP/logradouro e sinônimos.
+        </p>
       </div>
 
       <Card>
@@ -264,31 +331,53 @@ function BaseOficial() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Bairros cadastrados ({filtered.length})</CardTitle>
-          <div className="mt-2 flex flex-col gap-2 md:flex-row">
-            <Input placeholder="Filtrar por bairro" value={fBairro} onChange={(e) => setFBairro(e.target.value)} />
-            <select
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-              value={fRegiao}
-              onChange={(e) => setFRegiao(e.target.value)}
-            >
-              <option value="">Todas as regiões</option>
-              {regioes.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
+          <CardTitle>Bairros e parcelamentos ({filtered.length} de {stats.bairros})</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {stats.parcelamentos} parcelamentos cadastrados
+            {stats.semParc > 0 && (
+              <span className="text-amber-600"> · {stats.semParc} bairro(s) sem parcelamento</span>
+            )}
+          </p>
+          <div className="mt-2 flex flex-col gap-2">
+            <div className="flex flex-col gap-2 md:flex-row">
+              <Input placeholder="Filtrar por bairro" value={fBairro} onChange={(e) => setFBairro(e.target.value)} />
+              <Input
+                placeholder="Filtrar por parcelamento"
+                value={fParc}
+                onChange={(e) => setFParc(e.target.value)}
+              />
+              <select
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                value={fRegiao}
+                onChange={(e) => setFRegiao(e.target.value)}
+              >
+                <option value="">Todas as regiões</option>
+                {regioes.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+              <input
+                type="checkbox"
+                className="rounded border-input"
+                checked={fSemParc}
+                onChange={(e) => setFSemParc(e.target.checked)}
+              />
+              Mostrar somente bairros sem parcelamento
+            </label>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Bairro Oficial</TableHead>
-                <TableHead>Região Urbana</TableHead>
-                <TableHead className="text-center">Parcelamentos</TableHead>
-                <TableHead className="w-40 text-right">Ações</TableHead>
+                <TableHead className="w-[160px]">Bairro Oficial</TableHead>
+                <TableHead className="w-[120px]">Região Urbana</TableHead>
+                <TableHead>Parcelamentos</TableHead>
+                <TableHead className="w-28 text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -309,7 +398,7 @@ function BaseOficial() {
                             onChange={(e) => setEditVals({ ...editVals, regiao_urbana: e.target.value })}
                           />
                         </TableCell>
-                        <TableCell className="text-center">{(parcByB.get(b.id) ?? []).length}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">—</TableCell>
                         <TableCell className="space-x-1 text-right">
                           <Button size="sm" onClick={() => saveEdit(b.id)}>
                             <Save className="h-3 w-3" />
@@ -323,10 +412,16 @@ function BaseOficial() {
                       <>
                         <TableCell className="font-medium">{b.bairro_oficial}</TableCell>
                         <TableCell>{b.regiao_urbana ?? "—"}</TableCell>
-                        <TableCell className="text-center">
-                          <button className="text-primary hover:underline" onClick={() => setOpenId(openId === b.id ? null : b.id)}>
-                            {(parcByB.get(b.id) ?? []).length}
-                          </button>
+                        <TableCell>
+                          {(parcByB.get(b.id) ?? []).length === 0 ? (
+                            <span className="text-sm text-amber-600">Sem parcelamento</span>
+                          ) : (
+                            <ul className="list-inside list-disc space-y-0.5 text-sm">
+                              {(parcByB.get(b.id) ?? []).map((p) => (
+                                <li key={p.id}>{p.parcelamento}</li>
+                              ))}
+                            </ul>
+                          )}
                         </TableCell>
                         <TableCell className="space-x-1 text-right">
                           <Button
@@ -336,8 +431,17 @@ function BaseOficial() {
                               setEditId(b.id);
                               setEditVals({ bairro_oficial: b.bairro_oficial, regiao_urbana: b.regiao_urbana ?? "" });
                             }}
+                            title="Editar bairro"
                           >
                             <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setOpenId(openId === b.id ? null : b.id)}
+                            title="Gerenciar parcelamentos e CEP"
+                          >
+                            {openId === b.id ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                           </Button>
                           <Button size="sm" variant="ghost" onClick={() => delBairro(b.id)}>
                             <Trash2 className="h-3 w-3" />
@@ -352,6 +456,9 @@ function BaseOficial() {
                     <TableRow key={b.id + "-p"}>
                       <TableCell colSpan={4} className="bg-muted/30">
                         <div className="space-y-2">
+                          <p className="text-xs font-medium text-muted-foreground">
+                            Gerenciar parcelamentos e CEP — {b.bairro_oficial}
+                          </p>
                           <div className="flex gap-2">
                             <Input placeholder="Novo parcelamento" value={novoParc} onChange={(e) => setNovoParc(e.target.value)} />
                             <Button size="sm" onClick={() => addParc(b.id)}>
@@ -400,6 +507,51 @@ function BaseOficial() {
                               <li className="text-xs text-muted-foreground">Sem parcelamentos cadastrados.</li>
                             )}
                           </ul>
+                          <div className="border-t border-border pt-3">
+                            <p className="mb-2 text-xs font-medium text-muted-foreground">
+                              CEP / logradouro de referência (ajuda na identificação por região)
+                            </p>
+                            <div className="flex flex-col gap-2 md:flex-row">
+                              <Input
+                                placeholder="CEP início (79005-120)"
+                                value={novoCepInicio}
+                                onChange={(e) => setNovoCepInicio(e.target.value)}
+                              />
+                              <Input
+                                placeholder="CEP fim (opcional)"
+                                value={novoCepFim}
+                                onChange={(e) => setNovoCepFim(e.target.value)}
+                              />
+                              <Input
+                                placeholder="Logradouro referência"
+                                value={novoCepLog}
+                                onChange={(e) => setNovoCepLog(e.target.value)}
+                              />
+                              <Button size="sm" onClick={() => addCep(b.id)}>
+                                <Plus className="h-3 w-3" /> CEP
+                              </Button>
+                            </div>
+                            <ul className="mt-2 space-y-1">
+                              {(cepsByB.get(b.id) ?? []).map((c) => (
+                                <li
+                                  key={c.id}
+                                  className="flex items-center justify-between rounded border border-border bg-background px-3 py-1.5 text-sm"
+                                >
+                                  <span>
+                                    {formatCep(c.cep_inicio)}
+                                    {c.cep_fim ? ` — ${formatCep(c.cep_fim)}` : ""}
+                                    {c.logradouro ? ` · ${c.logradouro}` : ""}
+                                  </span>
+                                  <Button size="sm" variant="ghost" onClick={() => delCep(c.id)}>
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </li>
+                              ))}
+                              {(cepsByB.get(b.id) ?? []).length === 0 && (
+                                <li className="text-xs text-muted-foreground">Sem CEP cadastrado.</li>
+                              )}
+                            </ul>
+                          </div>
                         </div>
                       </TableCell>
                     </TableRow>,

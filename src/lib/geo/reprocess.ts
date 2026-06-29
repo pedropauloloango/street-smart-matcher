@@ -28,7 +28,10 @@ export async function reprocessImportacao(
 
   for (let i = 0; i < existing.length; i++) {
     const row = existing[i]!;
-    const matched = matchOne(row.bairro_original, ds, row.linha);
+    const matched = matchOne(row.bairro_original, ds, row.linha, {
+      logradouro: row.logradouro,
+      cep: row.cep,
+    });
 
     if (shouldPreserveManualCorrection(row, matched)) {
       updated.push(row);
@@ -51,6 +54,8 @@ export async function reprocessImportacao(
       importacao_id: importacaoId,
       linha_original: r.linha,
       bairro_original: r.bairro_original,
+      logradouro: r.logradouro,
+      cep: r.cep,
       bairro_oficial: r.bairro_oficial,
       parcelamento: r.parcelamento,
       regiao_urbana: r.regiao_urbana,

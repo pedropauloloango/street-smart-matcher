@@ -17,6 +17,8 @@ export const Route = createFileRoute("/_app/geo/normalizacao")({
 function NormalizacaoPage() {
   const rows = useGeoStore((s) => s.rows);
   const col = useGeoStore((s) => s.bairroColumn);
+  const logCol = useGeoStore((s) => s.logradouroColumn);
+  const cepCol = useGeoStore((s) => s.cepColumn);
   const fileName = useGeoStore((s) => s.fileName);
   const [progress, setProgress] = useState(0);
   const [running, setRunning] = useState(false);
@@ -33,7 +35,9 @@ function NormalizacaoPage() {
       const chunk = 500;
       for (let i = 0; i < rows.length; i++) {
         const original = String(rows[i][col] ?? "");
-        results.push(matchOne(original, ds, i + 1));
+        const logradouro = logCol ? String(rows[i][logCol] ?? "").trim() || null : null;
+        const cep = cepCol ? String(rows[i][cepCol] ?? "").trim() || null : null;
+        results.push(matchOne(original, ds, i + 1, { logradouro, cep }));
         if (i % chunk === 0) {
           setProgress(Math.round((i / rows.length) * 100));
           await new Promise((r) => setTimeout(r, 0));
@@ -61,6 +65,8 @@ function NormalizacaoPage() {
           importacao_id,
           linha_original: r.linha,
           bairro_original: r.bairro_original,
+          logradouro: r.logradouro,
+          cep: r.cep,
           bairro_oficial: r.bairro_oficial,
           parcelamento: r.parcelamento,
           regiao_urbana: r.regiao_urbana,
@@ -94,6 +100,14 @@ function NormalizacaoPage() {
             <>
               <p className="text-sm">Arquivo: <span className="font-medium">{fileName}</span></p>
               <p className="text-sm">Coluna do bairro: <span className="font-medium">{col ?? "—"}</span></p>
+              {(logCol || cepCol) && (
+                <p className="text-sm">
+                  Endereço:{" "}
+                  <span className="font-medium">
+                    {[logCol && `logradouro (${logCol})`, cepCol && `CEP (${cepCol})`].filter(Boolean).join(" · ")}
+                  </span>
+                </p>
+              )}
               <p className="text-sm">Total de registros: <span className="font-medium">{rows.length}</span></p>
               <div className="rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">
                 Etapas: 1) normalização (acentos, maiúsculas, pontuação, abreviações) · 2) correspondência exata · 3) sinônimos cadastrados · 4) similaridade ≥ 85%.

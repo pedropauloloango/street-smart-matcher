@@ -6,6 +6,8 @@ export type ResultRow = {
   id?: string;
   linha: number;
   bairro_original: string;
+  logradouro: string | null;
+  cep: string | null;
   bairro_oficial: string | null;
   parcelamento: string | null;
   regiao_urbana: string | null;
@@ -18,6 +20,8 @@ export type GeoState = {
   headers: string[];
   rows: Row[];
   bairroColumn: string | null;
+  logradouroColumn: string | null;
+  cepColumn: string | null;
   results: ResultRow[];
   importacaoId: string | null;
 };
@@ -27,6 +31,8 @@ let state: GeoState = {
   headers: [],
   rows: [],
   bairroColumn: null,
+  logradouroColumn: null,
+  cepColumn: null,
   results: [],
   importacaoId: null,
 };
@@ -44,7 +50,16 @@ export const geoStore = {
     return () => listeners.delete(l);
   },
   reset: () => {
-    state = { fileName: null, headers: [], rows: [], bairroColumn: null, results: [], importacaoId: null };
+    state = {
+      fileName: null,
+      headers: [],
+      rows: [],
+      bairroColumn: null,
+      logradouroColumn: null,
+      cepColumn: null,
+      results: [],
+      importacaoId: null,
+    };
     listeners.forEach((l) => l());
   },
 };

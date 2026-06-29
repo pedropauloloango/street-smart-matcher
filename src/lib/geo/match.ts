@@ -4,9 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 
 import { fetchAllRows } from "./api";
 
-import { normalizeGeo } from "./normalize";
+import { normalizeGeo, stripSecaoParcelamento } from "./normalize";
 
 import { similarity } from "./levenshtein";
+
+import { findBairroIdsByCep, normalizeCep, type BairroCep, buildCepsByBairro, cepBoostForBairro } from "./cep";
 
 import type { ResultRow } from "./store";
 
@@ -74,6 +76,20 @@ export type GeoDataset = {
 
   sinByNorm: Map<string, Sinonimo>;
 
+  ceps: BairroCep[];
+
+  cepsByBairro: Map<string, BairroCep[]>;
+
+};
+
+
+
+export type MatchContext = {
+
+  logradouro?: string | null;
+
+  cep?: string | null;
+
 };
 
 
@@ -98,7 +114,7 @@ function parcMatchPriority(parcName: string, bairroOficial: string): number {
 
 export async function loadGeoDataset(): Promise<GeoDataset> {
 
-  const [bairros, parcelamentos, sinonimos] = await Promise.all([
+  const [bairros, parcelamentos, sinonimos, ceps] = await Promise.all([
 
     fetchAllRows<Bairro>((from, to) =>
 
@@ -115,6 +131,12 @@ export async function loadGeoDataset(): Promise<GeoDataset> {
     fetchAllRows<Sinonimo>((from, to) =>
 
       supabase.from("geo_sinonimos").select("id,bairro_id,nome_normalizado,nome_informado").range(from, to),
+
+    ),
+
+    fetchAllRows<BairroCep>((from, to) =>
+
+      supabase.from("geo_bairro_ceps").select("id,bairro_id,cep_inicio,cep_fim,logradouro").eq("ativo", true).range(from, to),
 
     ),
 
@@ -154,29 +176,43 @@ export async function loadGeoDataset(): Promise<GeoDataset> {
 
 
 
-    const norm = normalizeGeo(x.parcelamento);
+    const norms = new Set<string>();
 
-    if (!norm) continue;
+    const n1 = normalizeGeo(x.parcelamento);
+
+    if (n1) norms.add(n1);
+
+    const n2 = normalizeGeo(stripSecaoParcelamento(x.parcelamento));
+
+    if (n2) norms.add(n2);
+
+
 
     const bairroOficial = bairroOficialById.get(x.bairro_id) ?? "";
 
     const candidate: ParcMatch = { bairro_id: x.bairro_id, parcelamento: x.parcelamento };
 
-    const existing = parcByNorm.get(norm);
 
-    if (!existing) {
 
-      parcByNorm.set(norm, candidate);
+    for (const norm of norms) {
 
-      continue;
+      const existing = parcByNorm.get(norm);
 
-    }
+      if (!existing) {
 
-    const existingBairro = bairroOficialById.get(existing.bairro_id) ?? "";
+        parcByNorm.set(norm, candidate);
 
-    if (parcMatchPriority(x.parcelamento, bairroOficial) > parcMatchPriority(existing.parcelamento, existingBairro)) {
+        continue;
 
-      parcByNorm.set(norm, candidate);
+      }
+
+      const existingBairro = bairroOficialById.get(existing.bairro_id) ?? "";
+
+      if (parcMatchPriority(x.parcelamento, bairroOficial) > parcMatchPriority(existing.parcelamento, existingBairro)) {
+
+        parcByNorm.set(norm, candidate);
+
+      }
 
     }
 
@@ -190,7 +226,11 @@ export async function loadGeoDataset(): Promise<GeoDataset> {
 
 
 
-  return { bairros, bairrosById, bairrosByNorm, parcByBairro, parcByNorm, sinByNorm };
+  const cepsByBairro = buildCepsByBairro(ceps);
+
+
+
+  return { bairros, bairrosById, bairrosByNorm, parcByBairro, parcByNorm, sinByNorm, ceps, cepsByBairro };
 
 }
 
@@ -308,13 +348,96 @@ export function shouldPreserveManualCorrection(existing: ResultRow, matched: Res
 
 
 
-export function matchOne(original: string, ds: GeoDataset, line: number): ResultRow {
+function matchByCep(cepNorm: string, norm: string | null, ds: GeoDataset): ResultRow | null {
+
+  const ids = findBairroIdsByCep(cepNorm, ds.ceps);
+
+  if (!ids.length) return null;
+
+
+
+  const candidates = ids.map((id) => ds.bairrosById.get(id)).filter(Boolean) as Bairro[];
+
+  if (!candidates.length) return null;
+
+
+
+  const base: ResultRow = {
+
+    linha: 0,
+
+    bairro_original: "",
+
+    logradouro: null,
+
+    cep: cepNorm,
+
+    bairro_oficial: null,
+
+    parcelamento: null,
+
+    regiao_urbana: null,
+
+    status_match: "nao_encontrado",
+
+    percentual_confianca: 0,
+
+  };
+
+
+
+  if (candidates.length === 1) {
+
+    return fill(base, candidates[0]!, ds, "encontrado", 98);
+
+  }
+
+
+
+  if (norm) {
+
+    let best: { b: Bairro; score: number } | null = null;
+
+    for (const b of candidates) {
+
+      const score = similarity(norm, normalizeGeo(b.bairro_oficial));
+
+      if (!best || score > best.score) best = { b, score };
+
+    }
+
+    if (best && best.score >= 50) {
+
+      const status = best.score >= 85 ? "encontrado" : "similaridade";
+
+      return fill(base, best.b, ds, status, Math.max(best.score, 92));
+
+    }
+
+  }
+
+
+
+  return null;
+
+}
+
+
+
+export function matchOne(original: string, ds: GeoDataset, line: number, ctx?: MatchContext): ResultRow {
+
+  const cepNorm = normalizeCep(ctx?.cep);
+  const logradouro = ctx?.logradouro?.trim() || null;
 
   const base: ResultRow = {
 
     linha: line,
 
     bairro_original: original,
+
+    logradouro,
+
+    cep: cepNorm,
 
     bairro_oficial: null,
 
@@ -330,6 +453,22 @@ export function matchOne(original: string, ds: GeoDataset, line: number): Result
 
   const norm = normalizeGeo(original);
 
+  if (!norm && !cepNorm) return base;
+
+
+
+  // 0) CEP único na base oficial (antes do nome, quando CEP é determinístico)
+
+  if (cepNorm) {
+
+    const cepHit = matchByCep(cepNorm, norm, ds);
+
+    if (cepHit) return { ...cepHit, logradouro, cep: cepNorm };
+
+  }
+
+
+
   if (!norm) return base;
 
 
@@ -343,10 +482,6 @@ export function matchOne(original: string, ds: GeoDataset, line: number): Result
     return fill(base, bairroExato, ds, "encontrado", 100);
 
   }
-
-
-
-  // 2) Sinônimo
 
   const sin = ds.sinByNorm.get(norm);
 
@@ -366,17 +501,29 @@ export function matchOne(original: string, ds: GeoDataset, line: number): Result
 
 
 
-  // 3) Parcelamento exato
+  // 3) Parcelamento exato (inclui nome sem "Seção")
 
-  const parcHit = ds.parcByNorm.get(norm);
+  const parcNorms = new Set<string>([norm]);
 
-  if (parcHit) {
+  const semSecao = normalizeGeo(stripSecaoParcelamento(original));
 
-    const target = ds.bairrosById.get(parcHit.bairro_id);
+  if (semSecao) parcNorms.add(semSecao);
 
-    if (target) {
 
-      return fill(base, target, ds, "encontrado", 100, parcHit.parcelamento);
+
+  for (const pn of parcNorms) {
+
+    const parcHit = ds.parcByNorm.get(pn);
+
+    if (parcHit) {
+
+      const target = ds.bairrosById.get(parcHit.bairro_id);
+
+      if (target) {
+
+        return fill(base, target, ds, "encontrado", 100, parcHit.parcelamento);
+
+      }
 
     }
 
@@ -402,6 +549,14 @@ export function matchOne(original: string, ds: GeoDataset, line: number): Result
   const holder: { value: Best | null } = { value: null };
 
   const consider = (b: Bairro, score: number, parc?: string) => {
+
+    if (cepNorm) {
+
+      const boost = cepBoostForBairro(b.id, cepNorm, ds.cepsByBairro);
+
+      if (boost) score = Math.max(score, boost);
+
+    }
 
     if (!holder.value || score > holder.value.score) holder.value = { b, score, parc };
 

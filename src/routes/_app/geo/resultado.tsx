@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -32,8 +32,12 @@ import {
 import { reprocessImportacao } from "@/lib/geo/reprocess";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeGeo } from "@/lib/geo/normalize";
-import { Pencil, RefreshCw, Save, X } from "lucide-react";
+import { Pencil, RefreshCw, Save, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
+import { fetchBairroSuggestions } from "@/lib/geo/suggest.functions";
+import { getLocalSuggestions, suggestionKey, type BairroSuggestion, type OfficialParcelamento } from "@/lib/geo/suggest-local";
+import type { BairroCep } from "@/lib/geo/cep";
+import { fetchAllRows } from "@/lib/geo/api";
 
 export const Route = createFileRoute("/_app/geo/resultado")({
   component: ResultadoPage,
@@ -61,10 +65,16 @@ function ResultadoPage() {
   const [bulkBairroId, setBulkBairroId] = useState("");
   const [bulkBairroSearch, setBulkBairroSearch] = useState("");
   const [bairros, setBairros] = useState<Bairro[]>([]);
+  const [ceps, setCeps] = useState<BairroCep[]>([]);
+  const [parcelamentos, setParcelamentos] = useState<OfficialParcelamento[]>([]);
   const [loading, setLoading] = useState(false);
   const [reprocessing, setReprocessing] = useState(false);
   const [reprocessPct, setReprocessPct] = useState(0);
   const [savingBulk, setSavingBulk] = useState(false);
+  const [suggestionsCache, setSuggestionsCache] = useState<Map<string, BairroSuggestion[]>>(new Map());
+  const [loadingSuggestions, setLoadingSuggestions] = useState<Set<string>>(new Set());
+  const [fetchingSuggestions, setFetchingSuggestions] = useState(false);
+  const fetchedInformadosRef = useRef<Set<string>>(new Set());
 
   const loadResults = useCallback(async (impId: string | null) => {
     if (!impId) {
@@ -85,18 +95,180 @@ function ResultadoPage() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
-        .from("geo_bairros")
-        .select("id,bairro_oficial,regiao_urbana")
-        .eq("ativo", true)
-        .order("bairro_oficial");
-      setBairros((data ?? []) as Bairro[]);
+      const [bRes, cRes, pRes] = await Promise.all([
+        supabase
+          .from("geo_bairros")
+          .select("id,bairro_oficial,regiao_urbana")
+          .eq("ativo", true)
+          .order("bairro_oficial"),
+        fetchAllRows<BairroCep>((from, to) =>
+          supabase
+            .from("geo_bairro_ceps")
+            .select("id,bairro_id,cep_inicio,cep_fim,logradouro")
+            .eq("ativo", true)
+            .range(from, to),
+        ),
+        fetchAllRows<{ id: string; bairro_id: string; parcelamento: string }>((from, to) =>
+          supabase
+            .from("geo_parcelamentos")
+            .select("id,bairro_id,parcelamento")
+            .eq("ativo", true)
+            .range(from, to),
+        ),
+      ]);
+      const bList = (bRes.data ?? []) as Bairro[];
+      const bMap = new Map(bList.map((b) => [b.id, b]));
+      setBairros(bList);
+      setCeps(cRes);
+      setParcelamentos(
+        pRes.map((p) => ({
+          id: p.id,
+          bairro_id: p.bairro_id,
+          parcelamento: p.parcelamento,
+          bairro_oficial: bMap.get(p.bairro_id)?.bairro_oficial ?? "",
+          regiao_urbana: bMap.get(p.bairro_id)?.regiao_urbana ?? null,
+        })),
+      );
     })();
   }, []);
 
   useEffect(() => {
     if (importacaoId) loadResults(importacaoId);
+    setSuggestionsCache(new Map());
+    fetchedInformadosRef.current = new Set();
   }, [importacaoId, loadResults]);
+
+  const uniqueNaoEncontrados = useMemo(() => {
+    const seen = new Set<string>();
+    const rows: ResultRow[] = [];
+    for (const r of results) {
+      if (r.status_match === "nao_encontrado" && r.bairro_original.trim()) {
+        const key = suggestionKey(r.bairro_original, { cep: r.cep, logradouro: r.logradouro });
+        if (!seen.has(key)) {
+          seen.add(key);
+          rows.push(r);
+        }
+      }
+    }
+    return rows;
+  }, [results]);
+
+  const fetchSuggestions = useCallback(
+    async (targets: ResultRow[], options?: { force?: boolean; includeWeb?: boolean }) => {
+      const force = options?.force ?? false;
+      const includeWeb = options?.includeWeb ?? true;
+      if (!bairros.length) return;
+
+      const items = targets.map((row) => ({
+        key: suggestionKey(row.bairro_original, { cep: row.cep, logradouro: row.logradouro }),
+        informado: row.bairro_original,
+        cep: row.cep,
+        logradouro: row.logradouro,
+      }));
+
+      const pending = items.filter((item) => {
+        if (force) return true;
+        return !fetchedInformadosRef.current.has(item.key);
+      });
+      if (!pending.length) return;
+
+      setLoadingSuggestions((prev) => new Set([...prev, ...pending.map((p) => p.key)]));
+
+      const suggestCtx = { ceps, parcelamentos };
+
+      const localOnly = pending.map((item) => ({
+        key: item.key,
+        items: getLocalSuggestions(item.informado, bairros, {
+          cep: item.cep,
+          logradouro: item.logradouro,
+          ceps,
+          parcelamentos,
+        }),
+      }));
+
+      setSuggestionsCache((prev) => {
+        const next = new Map(prev);
+        for (const { key, items: list } of localOnly) {
+          if (list.length) next.set(key, list);
+        }
+        return next;
+      });
+
+      if (!includeWeb) {
+        for (const item of pending) fetchedInformadosRef.current.add(item.key);
+        setLoadingSuggestions((prev) => {
+          const next = new Set(prev);
+          for (const item of pending) next.delete(item.key);
+          return next;
+        });
+        return;
+      }
+
+      try {
+        for (let offset = 0; offset < pending.length; offset += 10) {
+          const chunk = pending.slice(offset, offset + 10);
+          const map = await fetchBairroSuggestions({
+            data: { items: chunk, includeWeb: true, bairros, ceps, parcelamentos },
+          });
+          setSuggestionsCache((prev) => {
+            const next = new Map(prev);
+            for (const item of chunk) {
+              const v = map[item.key];
+              if (v?.length) next.set(item.key, v);
+              else if (!next.has(item.key)) {
+                next.set(
+                  item.key,
+                  getLocalSuggestions(item.informado, bairros, {
+                    cep: item.cep,
+                    logradouro: item.logradouro,
+                    ...suggestCtx,
+                  }),
+                );
+              }
+            }
+            return next;
+          });
+          for (const item of chunk) fetchedInformadosRef.current.add(item.key);
+        }
+      } catch (e: unknown) {
+        toast.error(e instanceof Error ? e.message : "Falha ao buscar sugestões na web");
+        for (const item of pending) fetchedInformadosRef.current.add(item.key);
+      } finally {
+        setLoadingSuggestions((prev) => {
+          const next = new Set(prev);
+          for (const item of pending) next.delete(item.key);
+          return next;
+        });
+      }
+    },
+    [bairros, ceps, parcelamentos],
+  );
+
+  useEffect(() => {
+    if (!uniqueNaoEncontrados.length || !bairros.length) return;
+    const auto = uniqueNaoEncontrados
+      .filter((row) => {
+        const key = suggestionKey(row.bairro_original, { cep: row.cep, logradouro: row.logradouro });
+        return !fetchedInformadosRef.current.has(key);
+      })
+      .slice(0, 12);
+    if (auto.length) void fetchSuggestions(auto);
+  }, [uniqueNaoEncontrados, bairros.length, fetchSuggestions]);
+
+  const handleFetchAllSuggestions = useCallback(async () => {
+    const targets = uniqueNaoEncontrados;
+    if (!targets.length) {
+      toast.info("Nenhum bairro não encontrado para buscar.");
+      return;
+    }
+    setFetchingSuggestions(true);
+    try {
+      await fetchSuggestions(targets, { force: true, includeWeb: true });
+      toast.success(`Sugestões buscadas para ${targets.length} registro(s) não encontrado(s).`);
+    } finally {
+      setFetchingSuggestions(false);
+    }
+  }, [uniqueNaoEncontrados, fetchSuggestions]);
 
   const regioes = useMemo(
     () => Array.from(new Set(results.map((r) => r.regiao_urbana).filter(Boolean))) as string[],
@@ -227,6 +399,31 @@ function ResultadoPage() {
       }
     }
   };
+
+  const applySuggestion = useCallback(
+    async (row: ResultRow, bairroId: string) => {
+      const target = bairros.find((b) => b.id === bairroId);
+      if (!target) return;
+      const sameRows = results.filter((r) => r.bairro_original === row.bairro_original);
+      const count = sameRows.length;
+      const applyAll =
+        count > 1 &&
+        confirm(
+          `Aplicar "${target.bairro_oficial}" para "${row.bairro_original}"?\n\nHá ${count} registro(s) com este bairro informado. Aplicar a todos?`,
+        );
+      try {
+        await applyCorrection(applyAll ? sameRows : [row], target);
+        toast.success(
+          applyAll
+            ? `"${row.bairro_original}" → ${target.bairro_oficial} (${count} registro(s))`
+            : `Correção aplicada: ${target.bairro_oficial}`,
+        );
+      } catch (e: unknown) {
+        toast.error(e instanceof Error ? e.message : "Falha ao aplicar sugestão");
+      }
+    },
+    [bairros, results],
+  );
 
   const startEdit = useCallback(
     (row: ResultRow) => {
@@ -600,6 +797,17 @@ function ResultadoPage() {
                   <Pencil className="h-3.5 w-3.5" />
                   Editar todas filtradas ({filtered.length})
                 </Button>
+                {stats.nao > 0 && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={fetchingSuggestions || loadingSuggestions.size > 0}
+                    onClick={() => void handleFetchAllSuggestions()}
+                  >
+                    <Sparkles className={`h-3.5 w-3.5 ${fetchingSuggestions ? "animate-pulse" : ""}`} />
+                    {fetchingSuggestions ? "Buscando sugestões…" : `Sugestões web (${uniqueNaoEncontrados.length})`}
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent className={isFilterPending ? "opacity-80 transition-opacity" : undefined}>
@@ -622,6 +830,10 @@ function ResultadoPage() {
                 onStartEdit={startEdit}
                 onSaveCorrection={saveCorrection}
                 onCancelEdit={cancelEdit}
+                suggestionsCache={suggestionsCache}
+                loadingSuggestions={loadingSuggestions}
+                onFetchSuggestions={fetchSuggestions}
+                onApplySuggestion={applySuggestion}
               />
             </CardContent>
           </Card>

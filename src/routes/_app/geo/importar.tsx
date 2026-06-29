@@ -5,7 +5,7 @@ import { Upload, FileSpreadsheet, Download, FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { readSheet, guessBairroColumn } from "@/lib/geo/io";
+import { readSheet, guessBairroColumn, guessLogradouroColumn, guessCepColumn } from "@/lib/geo/io";
 import { downloadImportTemplate, IMPORT_TEMPLATE_ROWS } from "@/lib/geo/import-template";
 import { geoStore, useGeoStore } from "@/lib/geo/store";
 import { toast } from "sonner";
@@ -19,6 +19,8 @@ function ImportarPage() {
   const headers = useGeoStore((s) => s.headers);
   const rows = useGeoStore((s) => s.rows);
   const bairroColumn = useGeoStore((s) => s.bairroColumn);
+  const logradouroColumn = useGeoStore((s) => s.logradouroColumn);
+  const cepColumn = useGeoStore((s) => s.cepColumn);
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
 
@@ -29,7 +31,18 @@ function ImportarPage() {
       const { headers, rows } = await readSheet(f);
       if (!rows.length) { toast.error("Planilha vazia"); return; }
       const col = guessBairroColumn(headers);
-      geoStore.set({ fileName: f.name, headers, rows, bairroColumn: col, results: [], importacaoId: null });
+      const logCol = guessLogradouroColumn(headers);
+      const cepCol = guessCepColumn(headers);
+      geoStore.set({
+        fileName: f.name,
+        headers,
+        rows,
+        bairroColumn: col,
+        logradouroColumn: logCol,
+        cepColumn: cepCol,
+        results: [],
+        importacaoId: null,
+      });
       toast.success(`Carregados ${rows.length} registros`);
     } catch (e: any) {
       toast.error(e.message ?? "Falha ao ler planilha");
@@ -47,7 +60,9 @@ function ImportarPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Importar Planilha</h1>
-        <p className="text-sm text-muted-foreground">Aceita arquivos CSV e XLSX. Selecione qual coluna contém o bairro.</p>
+        <p className="text-sm text-muted-foreground">
+          Aceita arquivos CSV e XLSX. Selecione as colunas de bairro, logradouro e CEP (opcionais).
+        </p>
       </div>
 
       <Card>
@@ -92,18 +107,58 @@ function ImportarPage() {
             <p className="text-xs text-muted-foreground">{rows.length} registros · {headers.length} colunas</p>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex flex-col gap-2 md:flex-row md:items-center">
-              <label className="text-sm font-medium">Coluna do bairro:</label>
-              <select
-                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-                value={bairroColumn ?? ""}
-                onChange={(e) => geoStore.set({ bairroColumn: e.target.value })}
-              >
-                <option value="">— selecione —</option>
-                {headers.map((h) => <option key={h} value={h}>{h}</option>)}
-              </select>
-              {bairroColumn && <span className="text-xs text-emerald-600">Identificada automaticamente</span>}
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium">Coluna do bairro *</label>
+                <select
+                  className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                  value={bairroColumn ?? ""}
+                  onChange={(e) => geoStore.set({ bairroColumn: e.target.value || null })}
+                >
+                  <option value="">— selecione —</option>
+                  {headers.map((h) => (
+                    <option key={h} value={h}>
+                      {h}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium">Coluna logradouro</label>
+                <select
+                  className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                  value={logradouroColumn ?? ""}
+                  onChange={(e) => geoStore.set({ logradouroColumn: e.target.value || null })}
+                >
+                  <option value="">— opcional —</option>
+                  {headers.map((h) => (
+                    <option key={h} value={h}>
+                      {h}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium">Coluna CEP</label>
+                <select
+                  className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                  value={cepColumn ?? ""}
+                  onChange={(e) => geoStore.set({ cepColumn: e.target.value || null })}
+                >
+                  <option value="">— opcional —</option>
+                  {headers.map((h) => (
+                    <option key={h} value={h}>
+                      {h}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
+            {(logradouroColumn || cepColumn) && (
+              <p className="text-xs text-emerald-600">
+                Logradouro e CEP ajudam a identificar a região correta do bairro oficial.
+              </p>
+            )}
 
             <div className="overflow-x-auto">
               <Table>

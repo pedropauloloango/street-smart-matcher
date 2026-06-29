@@ -5,6 +5,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import type { ResultRow } from "@/lib/geo/store";
 import { Pencil, Save, X } from "lucide-react";
+import type { BairroSuggestion } from "@/lib/geo/suggest-local";
+import { suggestionKey } from "@/lib/geo/suggest-local";
+import { formatCep } from "@/lib/geo/cep";
+import { GeoSuggestionChips } from "@/components/geo/GeoSuggestionChips";
 
 type Bairro = { id: string; bairro_oficial: string; regiao_urbana: string | null };
 
@@ -31,6 +35,10 @@ type GeoResultadoTableProps = {
   onStartEdit: (row: ResultRow) => void;
   onSaveCorrection: (row: ResultRow) => void;
   onCancelEdit: () => void;
+  suggestionsCache: Map<string, BairroSuggestion[]>;
+  loadingSuggestions: Set<string>;
+  onFetchSuggestions: (rows: ResultRow[], force?: boolean) => void;
+  onApplySuggestion: (row: ResultRow, bairroId: string) => void;
 };
 
 export const GeoResultadoTable = memo(function GeoResultadoTable({
@@ -52,6 +60,10 @@ export const GeoResultadoTable = memo(function GeoResultadoTable({
   onStartEdit,
   onSaveCorrection,
   onCancelEdit,
+  suggestionsCache,
+  loadingSuggestions,
+  onFetchSuggestions,
+  onApplySuggestion,
 }: GeoResultadoTableProps) {
   const canEdit = (r: ResultRow) => r.status_match === "nao_encontrado" || r.status_match === "similaridade";
   const hasMore = visibleCount < totalFiltered;
@@ -71,6 +83,8 @@ export const GeoResultadoTable = memo(function GeoResultadoTable({
               </TableHead>
               <TableHead>Linha</TableHead>
               <TableHead>Bairro Informado</TableHead>
+              <TableHead>Logradouro</TableHead>
+              <TableHead>CEP</TableHead>
               <TableHead>Bairro Oficial</TableHead>
               <TableHead>Parcelamento</TableHead>
               <TableHead>Região Urbana</TableHead>
@@ -80,10 +94,13 @@ export const GeoResultadoTable = memo(function GeoResultadoTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((r) => (
+            {rows.map((r) => {
+              const sugKey = suggestionKey(r.bairro_original, { cep: r.cep, logradouro: r.logradouro });
+              return (
               <ResultadoTableRow
                 key={rowKey(r)}
                 row={r}
+                sugKey={sugKey}
                 isSelected={selected.has(rowKey(r))}
                 editing={editId === rowKey(r)}
                 editBairroId={editBairroId}
@@ -96,8 +113,12 @@ export const GeoResultadoTable = memo(function GeoResultadoTable({
                 onSaveCorrection={onSaveCorrection}
                 onCancelEdit={onCancelEdit}
                 canEdit={canEdit(r)}
+                suggestions={suggestionsCache.get(sugKey)}
+                suggestionsLoading={loadingSuggestions.has(sugKey)}
+                onFetchSuggestions={() => onFetchSuggestions([r], true)}
+                onApplySuggestion={onApplySuggestion}
               />
-            ))}
+            );})}
           </TableBody>
         </Table>
       </div>
@@ -114,6 +135,7 @@ export const GeoResultadoTable = memo(function GeoResultadoTable({
 
 type RowProps = {
   row: ResultRow;
+  sugKey: string;
   isSelected: boolean;
   editing: boolean;
   editBairroId: string;
@@ -126,6 +148,10 @@ type RowProps = {
   onStartEdit: (row: ResultRow) => void;
   onSaveCorrection: (row: ResultRow) => void;
   onCancelEdit: () => void;
+  suggestions?: BairroSuggestion[];
+  suggestionsLoading?: boolean;
+  onFetchSuggestions?: () => void;
+  onApplySuggestion: (row: ResultRow, bairroId: string) => void;
 };
 
 const ResultadoTableRow = memo(function ResultadoTableRow({
@@ -142,6 +168,10 @@ const ResultadoTableRow = memo(function ResultadoTableRow({
   onStartEdit,
   onSaveCorrection,
   onCancelEdit,
+  suggestions,
+  suggestionsLoading,
+  onFetchSuggestions,
+  onApplySuggestion,
 }: RowProps) {
   const key = rowKey(r);
 
@@ -169,6 +199,10 @@ const ResultadoTableRow = memo(function ResultadoTableRow({
           )}
         </div>
       </TableCell>
+      <TableCell className="max-w-[180px] truncate" title={r.logradouro ?? ""}>
+        {r.logradouro ?? "—"}
+      </TableCell>
+      <TableCell className="whitespace-nowrap">{r.cep ? formatCep(r.cep) : "—"}</TableCell>
       <TableCell>
         {editing ? (
           <select
@@ -184,7 +218,18 @@ const ResultadoTableRow = memo(function ResultadoTableRow({
             ))}
           </select>
         ) : (
-          (r.bairro_oficial ?? "—")
+          <div>
+            <span>{r.bairro_oficial ?? "—"}</span>
+            {r.status_match === "nao_encontrado" && !editing && (
+              <GeoSuggestionChips
+                informado={r.bairro_original}
+                suggestions={suggestions}
+                loading={suggestionsLoading}
+                onFetch={onFetchSuggestions}
+                onApply={(bairroId) => onApplySuggestion(r, bairroId)}
+              />
+            )}
+          </div>
         )}
       </TableCell>
       <TableCell className="max-w-[220px] truncate" title={r.parcelamento ?? ""}>

@@ -44,6 +44,8 @@ function ExportacoesPage() {
     results.map((r) => ({
       "Linha Original": r.linha,
       "Bairro Original": r.bairro_original,
+      Logradouro: r.logradouro ?? "",
+      CEP: r.cep ?? "",
       "Bairro Oficial": r.bairro_oficial ?? "",
       Parcelamento: r.parcelamento ?? "",
       "Região Urbana": r.regiao_urbana ?? "",

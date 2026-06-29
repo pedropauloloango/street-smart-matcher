@@ -38,6 +38,8 @@ type DbResultado = {
   id: string;
   linha_original: number;
   bairro_original: string | null;
+  logradouro: string | null;
+  cep: string | null;
   bairro_oficial: string | null;
   parcelamento: string | null;
   regiao_urbana: string | null;
@@ -50,6 +52,8 @@ export function dbToResultRow(r: DbResultado): ResultRow {
     id: r.id,
     linha: r.linha_original,
     bairro_original: r.bairro_original ?? "",
+    logradouro: r.logradouro,
+    cep: r.cep,
     bairro_oficial: r.bairro_oficial,
     parcelamento: r.parcelamento,
     regiao_urbana: r.regiao_urbana,

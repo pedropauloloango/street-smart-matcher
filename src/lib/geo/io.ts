@@ -13,14 +13,37 @@ export async function readSheet(file: File): Promise<{ headers: string[]; rows: 
 }
 
 export function guessBairroColumn(headers: string[]): string | null {
-  const candidates = ["BAIRRO", "ENDERECO", "ENDEREÇO", "LOGRADOURO", "NOME_BAIRRO"];
+  const candidates = ["BAIRRO", "NOME_BAIRRO", "NM_BAIRRO"];
   const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
   for (const h of headers) {
     const n = norm(h);
     if (candidates.includes(n)) return h;
   }
   for (const h of headers) {
-    if (norm(h).includes("BAIRRO")) return h;
+    const n = norm(h);
+    if (n.includes("BAIRRO") && !n.includes("OFICIAL")) return h;
+  }
+  return null;
+}
+
+export function guessLogradouroColumn(headers: string[]): string | null {
+  const candidates = ["LOGRADOURO", "ENDERECO", "ENDEREÇO", "RUA", "END"];
+  const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+  for (const h of headers) {
+    if (candidates.includes(norm(h))) return h;
+  }
+  for (const h of headers) {
+    const n = norm(h);
+    if (n.includes("LOGRADOURO") || n.includes("ENDERECO")) return h;
+  }
+  return null;
+}
+
+export function guessCepColumn(headers: string[]): string | null {
+  const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+  for (const h of headers) {
+    const n = norm(h);
+    if (n === "CEP" || n.startsWith("CEP ") || n.includes("CODIGO POSTAL")) return h;
   }
   return null;
 }

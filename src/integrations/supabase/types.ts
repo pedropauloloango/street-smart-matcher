@@ -74,6 +74,44 @@ export type Database = {
         }
         Relationships: []
       }
+      geo_bairro_ceps: {
+        Row: {
+          ativo: boolean
+          bairro_id: string
+          cep_fim: string | null
+          cep_inicio: string
+          data_cadastro: string
+          id: string
+          logradouro: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          bairro_id: string
+          cep_fim?: string | null
+          cep_inicio: string
+          data_cadastro?: string
+          id?: string
+          logradouro?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          bairro_id?: string
+          cep_fim?: string | null
+          cep_inicio?: string
+          data_cadastro?: string
+          id?: string
+          logradouro?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geo_bairro_ceps_bairro_id_fkey"
+            columns: ["bairro_id"]
+            isOneToOne: false
+            referencedRelation: "geo_bairros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       geo_importacoes: {
         Row: {
           data_importacao: string
@@ -146,10 +184,12 @@ export type Database = {
         Row: {
           bairro_oficial: string | null
           bairro_original: string | null
+          cep: string | null
           created_at: string
           id: string
           importacao_id: string
           linha_original: number
+          logradouro: string | null
           parcelamento: string | null
           percentual_confianca: number
           regiao_urbana: string | null
@@ -158,10 +198,12 @@ export type Database = {
         Insert: {
           bairro_oficial?: string | null
           bairro_original?: string | null
+          cep?: string | null
           created_at?: string
           id?: string
           importacao_id: string
           linha_original: number
+          logradouro?: string | null
           parcelamento?: string | null
           percentual_confianca?: number
           regiao_urbana?: string | null
@@ -170,10 +212,12 @@ export type Database = {
         Update: {
           bairro_oficial?: string | null
           bairro_original?: string | null
+          cep?: string | null
           created_at?: string
           id?: string
           importacao_id?: string
           linha_original?: number
+          logradouro?: string | null
           parcelamento?: string | null
           percentual_confianca?: number
           regiao_urbana?: string | null

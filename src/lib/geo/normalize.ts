@@ -64,6 +64,22 @@ export function stripBairroSuffixes(normalized: string): string {
   return tokens.join(" ").trim();
 }
 
+/** Remove trecho " - SEÇÃO …" do parcelamento para matching (ex.: Universitário - Seção D → Universitário). */
+export function stripSecaoParcelamento(raw: unknown): string {
+  const s = String(raw ?? "").trim();
+  if (!s) return s;
+  const parts = s.split(/\s*-\s*/);
+  const out: string[] = [];
+  for (const p of parts) {
+    if (/se[cç][aã]o/i.test(p)) break;
+    if (/^\d+\s*[ªº]?\s*se[cç][aã]o/i.test(p)) break;
+    if (/^parte$/i.test(p.trim())) break;
+    out.push(p.trim());
+  }
+  const joined = out.join(" - ").trim();
+  return joined || s;
+}
+
 export function stripAccents(s: string): string {
   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
